@@ -1,26 +1,94 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-binance-yellow: var(--color-binance-yellow);
+  --color-binance-yellow-hover: var(--color-binance-yellow-hover);
+  --color-binance-dark: var(--color-binance-dark);
+  --color-binance-darker: var(--color-binance-darker);
+  --color-binance-light: var(--color-binance-light);
+  --color-binance-gray: var(--color-binance-gray);
+  --color-binance-border: var(--color-binance-border);
+  --color-binance-success: var(--color-binance-success);
+  --color-binance-error: var(--color-binance-error);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
+  /* Light Mode */
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-binance-darker: #F5F5F7; /* Apple Gray */
+    --color-binance-dark: #FFFFFF; /* Pure White */
+    --color-binance-light: #1E2329; /* Text Black */
+    --color-binance-gray: #848E9C; /* Sub text */
+    --color-binance-border: #EAECEF; /* Light Border */
+    --color-binance-yellow: #F0B90B;
+    --color-binance-yellow-hover: #FCD535;
+    --color-binance-success: #0ECB81;
+    --color-binance-error: #F6465D;
+  }
+
+  /* Dark Mode (Mặc định trước đây) */
+  .dark {
+    color-scheme: dark;
+    --color-binance-darker: #0B0E11;
+    --color-binance-dark: #1E2329;
+    --color-binance-light: #FAFAFA;
+    --color-binance-gray: #848E9C;
+    --color-binance-border: #2B3139;
+    --color-binance-yellow: #F0B90B;
+    --color-binance-yellow-hover: #FCD535;
+    --color-binance-success: #0ECB81;
+    --color-binance-error: #F6465D;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--color-binance-darker);
+  color: var(--color-binance-light);
+}
+
+/* Tối ưu hóa UI/UX: Đảm bảo con trỏ chuột luôn đúng chuẩn trên mọi thiết bị */
+button:not(:disabled), 
+a, 
+[role="button"] {
+  cursor: pointer !important;
+}
+
+button:disabled {
+  cursor: not-allowed !important;
+}
+
+/* ====================== */
+/* Custom Scrollbar Styles */
+/* ====================== */
+
+/* Webkit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-binance-border);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-binance-gray);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-binance-border) transparent;
 }

@@ -1,0 +1,209 @@
+"use client";
+import { useTheme } from "next-themes";
+import { useLayoutStore } from "@/store/useLayoutStore";
+
+import { useAuthStore } from "@/store/useAuthStore";
+import { Bell, User, Search, Menu, Sun, Moon, ArrowRight, LogOut, Coins } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { MENU_GROUPS } from "@/config/menu";
+import { removeVietnameseTones } from "@/utils/stringUtils";
+
+export default function Header() {
+  const { theme, setTheme } = useTheme();
+  const toggleSidebar = useLayoutStore(state => state.toggleSidebar);
+  const openCoinModal = useLayoutStore(state => state.openCoinModal);
+
+  const handleOpenCoinModal = () => {
+    // Re-fetch profile để đảm bảo coin balance luôn mới nhất
+    if (user) useAuthStore.getState().fetchProfile(user.id);
+    openCoinModal();
+  };
+  const { openLoginModal, user, profile, signOut, isLoading } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+
+  // Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchRef = useRef(null);
+
+  useEffect(() => setMounted(true), []);
+
+  // Handle click outside to close search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filter tools based on query
+  const searchResults = MENU_GROUPS.flatMap(group => 
+    group.items.map(item => ({ ...item, groupTitle: group.title }))
+  ).filter(item => {
+    const normalizedLabel = removeVietnameseTones(item.label.toLowerCase());
+    const normalizedQuery = removeVietnameseTones(searchQuery.toLowerCase());
+    return normalizedLabel.includes(normalizedQuery);
+  });
+
+  const handleSelectResult = (item) => {
+    if (item.type === "link") {
+      router.push(item.href);
+    } else if (item.type === "action" && item.actionId === "history") {
+      openLoginModal("Tính năng xem Lịch sử tạo yêu cầu đăng nhập tài khoản Pro!");
+    }
+    setSearchQuery("");
+    setIsSearchOpen(false);
+  };
+
+  return (
+    <header className="h-16 border-b border-[var(--color-binance-border)] bg-[var(--color-binance-dark)]/95 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 transition-colors duration-300">
+      <div className="flex items-center gap-4">
+        {/* Nút Menu Hamburger giờ chỉ hiển thị ở Mobile (md:hidden) */}
+        <button 
+          onClick={toggleSidebar} 
+          className="p-2 md:hidden text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 rounded-md transition-colors cursor-pointer"
+        >
+          <Menu size={20} />
+        </button>
+        
+        {/* Thanh tìm kiếm */}
+        <div ref={searchRef} className="relative hidden md:block">
+          <div className="flex items-center bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-md px-3 py-1.5 focus-within:border-[var(--color-binance-yellow)] transition-colors">
+            <Search size={16} className="text-[var(--color-binance-gray)] mr-2" />
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm công cụ..." 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsSearchOpen(true);
+              }}
+              onFocus={() => setIsSearchOpen(true)}
+              className="bg-transparent border-none outline-none text-sm w-48 sm:w-64 lg:w-80 text-[var(--color-binance-light)] placeholder-[var(--color-binance-gray)] transition-all duration-300"
+            />
+          </div>
+
+          {/* Dropdown Kết Quả Tìm Kiếm */}
+          {isSearchOpen && searchQuery.length > 0 && (
+            <div className="absolute top-full left-0 mt-2 w-full min-w-[300px] bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              {searchResults.length > 0 ? (
+                <div className="max-h-[300px] overflow-y-auto py-2">
+                  {searchResults.map((item, idx) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleSelectResult(item)}
+                        className="w-full flex items-center justify-between px-4 py-2 hover:bg-[var(--color-binance-border)]/50 transition-colors text-left group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-1.5 rounded-md bg-[var(--color-binance-dark)] text-[var(--color-binance-gray)] group-hover:text-[var(--color-binance-yellow)] transition-colors">
+                            <Icon size={16} />
+                          </div>
+                          <div>
+                            <div className="text-[14px] font-medium text-[var(--color-binance-light)] flex items-center gap-2">
+                              {item.label}
+                              {item.isPro && (
+                                <span className="text-[9px] font-bold bg-gradient-to-r from-[var(--color-binance-yellow)] to-yellow-500 text-black px-1.5 py-0.5 rounded-[3px] uppercase tracking-wider shadow-sm">
+                                  PRO
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-[var(--color-binance-gray)]">{item.groupTitle}</div>
+                          </div>
+                        </div>
+                        <ArrowRight size={14} className="text-[var(--color-binance-gray)] opacity-0 group-hover:opacity-100 group-hover:text-[var(--color-binance-yellow)] transition-all transform -translate-x-2 group-hover:translate-x-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-6 text-center text-[var(--color-binance-gray)] text-sm">
+                  Không tìm thấy công cụ nào phù hợp với "{searchQuery}"
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-4">
+        {mounted && (
+          <button 
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            title="Đổi giao diện Sáng/Tối"
+            className="p-2 text-[var(--color-binance-gray)] hover:text-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-border)]/50 rounded-full transition-colors cursor-pointer"
+          >
+            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        )}
+        <button className="relative p-2 text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 rounded-full transition-colors">
+          <Bell size={20} />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--color-binance-yellow)] rounded-full"></span>
+        </button>
+
+        {/* Coin Balance — click to top up */}
+        {!isLoading && user && (
+          <button
+            onClick={handleOpenCoinModal}
+            title="Nạp coin"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--color-binance-yellow)]/10 border border-[var(--color-binance-yellow)]/25 rounded-md cursor-pointer select-none hover:bg-[var(--color-binance-yellow)]/20 hover:border-[var(--color-binance-yellow)]/50 transition-colors"
+          >
+            <Coins size={15} className="text-[var(--color-binance-yellow)]" />
+            <span className="text-sm font-bold text-[var(--color-binance-yellow)] tabular-nums">
+              {new Intl.NumberFormat("vi-VN").format(profile?.coins ?? 0)}
+            </span>
+          </button>
+        )}
+
+        {/* Avatar & User Info */}
+        {isLoading ? (
+          <div className="flex items-center gap-2 ml-2">
+            <div className="w-8 h-8 rounded-full bg-[var(--color-binance-border)] animate-pulse" />
+            <div className="hidden sm:block w-20 h-4 rounded bg-[var(--color-binance-border)] animate-pulse" />
+          </div>
+        ) : user ? (
+          <div className="relative flex items-center gap-2 ml-2 group">
+            <button
+              onClick={() => openLoginModal()}
+              className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+            >
+              <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[var(--color-binance-yellow)]/60 flex-shrink-0">
+                {user.user_metadata?.avatar_url
+                  ? <img src={user.user_metadata.avatar_url} className="w-full h-full object-cover" alt="avatar" />
+                  : <div className="w-full h-full bg-[var(--color-binance-yellow)]/20 flex items-center justify-center text-[var(--color-binance-yellow)] font-bold text-sm">
+                      {(user.user_metadata?.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                }
+              </div>
+              <span className="text-sm font-medium hidden sm:block text-[var(--color-binance-light)] max-w-[100px] truncate">
+                {user.user_metadata?.full_name || user.user_metadata?.display_name || user.email?.split('@')[0]}
+              </span>
+            </button>
+
+            {/* Dropdown logout */}
+            <button
+              onClick={() => signOut()}
+              title="Đăng xuất"
+              className="hidden group-hover:flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-[var(--color-binance-darker)] border border-red-400/20 px-2.5 py-1.5 rounded-lg transition-all absolute top-full right-0 mt-2 whitespace-nowrap shadow-xl z-50"
+            >
+              <LogOut size={13} /> Đăng xuất
+            </button>
+          </div>
+        ) : (
+          <div onClick={() => openLoginModal()} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ml-2">
+            <div className="w-8 h-8 rounded-full bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] flex items-center justify-center">
+              <User size={16} className="text-[var(--color-binance-gray)]" />
+            </div>
+            <span className="text-sm font-medium hidden sm:block text-[var(--color-binance-light)]">Đăng nhập</span>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
