@@ -66,11 +66,15 @@ export const useAuthStore = create((set, get) => ({
   },
 
   fetchProfile: async (userId) => {
-    const { data } = await supabase
+    // Đảm bảo user có record trong public.users (quan trọng với Google OAuth)
+    const { error: rpcError } = await supabase.rpc('ensure_user_profile');
+    if (rpcError) console.warn('[fetchProfile] ensure_user_profile error:', rpcError);
+    const { data, error } = await supabase
       .from('users')
       .select('id, email, display_name, avatar_url, role, bio, coins, created_at, updated_at')
       .eq('id', userId)
       .single();
+    console.log('[fetchProfile] data:', data, 'error:', error);
     if (data) set({ profile: data });
   },
 
