@@ -19,7 +19,12 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "MMO Tools Hub - Nền tảng công cụ tự động hóa",
   description: "Bộ công cụ tải video không logo và dịch vụ Landing page cho dân MMO.",
-  viewport: "width=device-width, initial-scale=1, minimum-scale=1",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
 };
 
 export default async function RootLayout({ children }) {
