@@ -13,7 +13,7 @@ export default function Footer() {
         <div className="flex items-center gap-6 text-sm text-[var(--color-binance-gray)]">
           <Link href="/privacy" className="hover:text-[var(--color-binance-light)] transition-colors">Bảo mật</Link>
           <Link href="/terms" className="hover:text-[var(--color-binance-light)] transition-colors">Điều khoản</Link>
-          <Link href="/contact" className="hover:text-[var(--color-binance-light)] transition-colors">Liên hệ</Link>
+          <Link href="/ho-tro" className="hover:text-[var(--color-binance-light)] transition-colors">Liên hệ</Link>
         </div>
       </div>
     </footer>
