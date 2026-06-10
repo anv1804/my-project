@@ -3,6 +3,7 @@ import { createAdminClient, logAction, getClientIp } from '@/utils/serverUtils';
 
 const WEBHOOK_SECRET  = process.env.SEPAY_WEBHOOK_SECRET;
 const BANK_ACCOUNT_NO = process.env.BANK_ACCOUNT_NO;
+const BANK_VA_NO      = process.env.BANK_VA_NO;
 
 // SePay sends: POST with Authorization: Apikey <secret>
 // Body: { id, gateway, transactionDate, accountNumber, subAccount, content,
@@ -28,8 +29,9 @@ export async function POST(request) {
     return NextResponse.json({ success: true, message: 'Ignored: outgoing transfer' });
   }
 
-  // Only process transfers to our configured bank account
-  if (BANK_ACCOUNT_NO && body.accountNumber && body.accountNumber !== BANK_ACCOUNT_NO) {
+  // Only process transfers to our configured bank account or VA
+  const allowedAccounts = [BANK_ACCOUNT_NO, BANK_VA_NO].filter(Boolean);
+  if (allowedAccounts.length > 0 && body.accountNumber && !allowedAccounts.includes(body.accountNumber)) {
     console.warn('Webhook: wrong account number', body.accountNumber);
     return NextResponse.json({ success: true, message: 'Ignored: wrong account' });
   }

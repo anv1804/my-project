@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 
 const BANK_ID = process.env.BANK_ID;
 const BANK_ACCOUNT_NO = process.env.BANK_ACCOUNT_NO;
+const BANK_VA_NO = process.env.BANK_VA_NO;
 const BANK_ACCOUNT_NAME = process.env.BANK_ACCOUNT_NAME;
 const BANK_NAME = process.env.BANK_NAME || BANK_ID;
 
@@ -92,9 +93,10 @@ export async function POST(request) {
       );
     }
 
+    const qrAcc = BANK_VA_NO || BANK_ACCOUNT_NO;
     const qrUrl =
-      `https://qr.sepay.vn/img?bank=${BANK_ID}&acc=${BANK_ACCOUNT_NO}` +
-      `&template=compact&amount=${amount}&des=${encodeURIComponent(reference)}`;
+      `https://qr.sepay.vn/img?acc=${qrAcc}&bank=${BANK_ID}` +
+      `&amount=${amount}&des=${encodeURIComponent(reference)}`;
 
     return NextResponse.json({
       success: true,
