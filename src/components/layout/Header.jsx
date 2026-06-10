@@ -5,11 +5,44 @@ import { useLayoutStore } from "@/store/useLayoutStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { syncCoins } from "@/utils/coinService";
 import Link from "next/link";
-import { Bell, User, Search, Menu, Sun, Moon, ArrowRight, LogOut, Coins, History, MessageSquare } from "lucide-react";
+import { Bell, User, Search, Menu, Sun, Moon, ArrowRight, LogOut, History, MessageSquare } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MENU_GROUPS } from "@/config/menu";
 import { removeVietnameseTones } from "@/utils/stringUtils";
+
+// Custom premium gold coin icon matching user reference image
+const CoinIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={`${className} inline-block`}>
+    {/* Back coin shadow/glow */}
+    <circle cx="8" cy="12" r="6.5" fill="#1e1d15" />
+    {/* Back coin */}
+    <circle cx="8" cy="12" r="6" fill="url(#coinGradBack)" stroke="#b28200" strokeWidth="1" />
+    <circle cx="8" cy="12" r="4.2" fill="none" stroke="#ffe066" strokeWidth="0.5" strokeDasharray="1.5 1" />
+    
+    {/* Front coin shadow/glow */}
+    <circle cx="15" cy="12" r="6.5" fill="#1e1d15" />
+    {/* Front coin */}
+    <circle cx="15" cy="12" r="6" fill="url(#coinGradFront)" stroke="#b28200" strokeWidth="1" />
+    <circle cx="15" cy="12" r="4.2" fill="none" stroke="#ffe066" strokeWidth="0.5" strokeDasharray="1.5 1" />
+    
+    {/* Dollar symbol inside front coin */}
+    <path d="M14.2 10.8h1.6c.4 0 .7.3.7.7 0 .4-.3.7-.7.7h-1.6V10.8zm0 1.8h1.8c.4 0 .7.3.7.7 0 .4-.3.7-.7.7H14v-1.4" stroke="#ffe066" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15 9.8v1M15 13.2v1" stroke="#ffe066" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+    
+    <defs>
+      <linearGradient id="coinGradFront" x1="9" y1="6" x2="21" y2="18" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#FFE066" />
+        <stop offset="40%" stopColor="#F5C453" />
+        <stop offset="100%" stopColor="#B28200" />
+      </linearGradient>
+      <linearGradient id="coinGradBack" x1="2" y1="6" x2="14" y2="18" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#F5C453" stopOpacity="0.9" />
+        <stop offset="100%" stopColor="#7A5900" stopOpacity="0.9" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -190,7 +223,7 @@ export default function Header() {
             title="Nạp coin"
             className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--color-binance-yellow)]/10 border border-[var(--color-binance-yellow)]/25 rounded-md cursor-pointer select-none hover:bg-[var(--color-binance-yellow)]/20 hover:border-[var(--color-binance-yellow)]/50 transition-colors"
           >
-            <Coins size={15} className="text-[var(--color-binance-yellow)]" />
+            <CoinIcon size={15} />
             <span className="text-sm font-bold text-[var(--color-binance-yellow)] tabular-nums">
               {new Intl.NumberFormat("vi-VN").format(profile?.coins ?? 0)}
             </span>
@@ -242,7 +275,7 @@ export default function Header() {
                   href="/nap-coin"
                   className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
                 >
-                  <Coins size={15} className="text-[var(--color-binance-gray)]" /> Nạp Coin
+                  <CoinIcon size={15} className="mr-0.5" /> Nạp Coin
                 </Link>
                 <Link
                   href="/dien-dan"

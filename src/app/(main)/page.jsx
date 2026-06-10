@@ -1,10 +1,43 @@
 import Link from "next/link";
-import { Download, Shuffle, Sparkles, Hash, PhoneCall, History, Type, Mic, MessageSquare, ArrowRight, Coins, Zap, Shield, HelpCircle, Users, Trophy, TrendingUp } from "lucide-react";
+import { Download, Shuffle, Sparkles, Hash, PhoneCall, History, Type, Mic, MessageSquare, ArrowRight, Zap, Shield, HelpCircle, Users, Trophy, TrendingUp } from "lucide-react";
 
 // Custom SVGs from config/menu.jsx
 const TiktokIcon = ({ size = 20, className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
     <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-5.394 10.692 6.33 6.33 0 0 0 10.857-4.424V8.687a8.182 8.182 0 0 0 4.773 1.526V6.79a4.831 4.831 0 0 1-1.003-.104z"/>
+  </svg>
+);
+
+// Custom premium gold coin icon matching user reference image
+const CoinIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={`${className} inline-block`}>
+    {/* Back coin shadow/glow */}
+    <circle cx="8" cy="12" r="6.5" fill="#1e1d15" />
+    {/* Back coin */}
+    <circle cx="8" cy="12" r="6" fill="url(#coinGradBack)" stroke="#b28200" strokeWidth="1" />
+    <circle cx="8" cy="12" r="4.2" fill="none" stroke="#ffe066" strokeWidth="0.5" strokeDasharray="1.5 1" />
+    
+    {/* Front coin shadow/glow */}
+    <circle cx="15" cy="12" r="6.5" fill="#1e1d15" />
+    {/* Front coin */}
+    <circle cx="15" cy="12" r="6" fill="url(#coinGradFront)" stroke="#b28200" strokeWidth="1" />
+    <circle cx="15" cy="12" r="4.2" fill="none" stroke="#ffe066" strokeWidth="0.5" strokeDasharray="1.5 1" />
+    
+    {/* Dollar symbol inside front coin */}
+    <path d="M14.2 10.8h1.6c.4 0 .7.3.7.7 0 .4-.3.7-.7.7h-1.6V10.8zm0 1.8h1.8c.4 0 .7.3.7.7 0 .4-.3.7-.7.7H14v-1.4" stroke="#ffe066" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15 9.8v1M15 13.2v1" stroke="#ffe066" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+    
+    <defs>
+      <linearGradient id="coinGradFront" x1="9" y1="6" x2="21" y2="18" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#FFE066" />
+        <stop offset="40%" stopColor="#F5C453" />
+        <stop offset="100%" stopColor="#B28200" />
+      </linearGradient>
+      <linearGradient id="coinGradBack" x1="2" y1="6" x2="14" y2="18" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#F5C453" stopOpacity="0.9" />
+        <stop offset="100%" stopColor="#7A5900" stopOpacity="0.9" />
+      </linearGradient>
+    </defs>
   </svg>
 );
 
@@ -181,7 +214,7 @@ export default function Home() {
 
           <div className="flex items-start gap-4 border-t md:border-t-0 pt-6 md:pt-0">
             <div className="p-3 rounded-lg bg-blue-500/10 text-blue-400">
-              <Coins size={24} />
+              <CoinIcon size={24} />
             </div>
             <div>
               <h3 className="font-bold text-lg text-[var(--color-binance-light)]">VietQR Auto Topup</h3>
@@ -263,7 +296,7 @@ export default function Home() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none"></div>
             <div className="relative z-10">
               <h3 className="text-xl sm:text-2xl font-bold text-[var(--color-binance-light)] flex items-center gap-2 mb-3">
-                <Coins className="text-[var(--color-binance-yellow)]" /> Trải nghiệm tính năng PRO & Nạp Coin tự động
+                <CoinIcon size={22} className="mr-0.5" /> Trải nghiệm tính năng PRO & Nạp Coin tự động
               </h3>
               <p className="text-sm text-[var(--color-binance-gray)] leading-relaxed mb-6">
                 Nạp Coin một lần, sử dụng cho mọi dịch vụ và sản phẩm hiện tại và tương lai trong hệ sinh thái MMO Tools Hub. Nạp tiền tự động qua VietQR Banking tiện lợi, xử lý chỉ trong 30 giây.

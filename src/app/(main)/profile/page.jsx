@@ -2,9 +2,42 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { syncCoins } from "@/utils/coinService";
 import { useEffect, useState } from "react";
-import { User, Mail, Shield, Coins, Calendar, ArrowRight, History, MessageSquare, Zap, ExternalLink, PhoneCall, HelpCircle } from "lucide-react";
+import { User, Mail, Shield, Calendar, ArrowRight, History, MessageSquare, Zap, ExternalLink, PhoneCall, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/common/Button";
+
+// Custom premium gold coin icon matching user reference image
+const CoinIcon = ({ size = 20, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={`${className} inline-block`}>
+    {/* Back coin shadow/glow */}
+    <circle cx="8" cy="12" r="6.5" fill="#1e1d15" />
+    {/* Back coin */}
+    <circle cx="8" cy="12" r="6" fill="url(#coinGradBack)" stroke="#b28200" strokeWidth="1" />
+    <circle cx="8" cy="12" r="4.2" fill="none" stroke="#ffe066" strokeWidth="0.5" strokeDasharray="1.5 1" />
+    
+    {/* Front coin shadow/glow */}
+    <circle cx="15" cy="12" r="6.5" fill="#1e1d15" />
+    {/* Front coin */}
+    <circle cx="15" cy="12" r="6" fill="url(#coinGradFront)" stroke="#b28200" strokeWidth="1" />
+    <circle cx="15" cy="12" r="4.2" fill="none" stroke="#ffe066" strokeWidth="0.5" strokeDasharray="1.5 1" />
+    
+    {/* Dollar symbol inside front coin */}
+    <path d="M14.2 10.8h1.6c.4 0 .7.3.7.7 0 .4-.3.7-.7.7h-1.6V10.8zm0 1.8h1.8c.4 0 .7.3.7.7 0 .4-.3.7-.7.7H14v-1.4" stroke="#ffe066" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15 9.8v1M15 13.2v1" stroke="#ffe066" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round" />
+    
+    <defs>
+      <linearGradient id="coinGradFront" x1="9" y1="6" x2="21" y2="18" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#FFE066" />
+        <stop offset="40%" stopColor="#F5C453" />
+        <stop offset="100%" stopColor="#B28200" />
+      </linearGradient>
+      <linearGradient id="coinGradBack" x1="2" y1="6" x2="14" y2="18" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#F5C453" stopOpacity="0.9" />
+        <stop offset="100%" stopColor="#7A5900" stopOpacity="0.9" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
 
 export default function ProfilePage() {
   const { user, profile, isLoading, openLoginModal } = useAuthStore();
@@ -127,7 +160,7 @@ export default function ProfilePage() {
             
             <div className="text-center sm:text-left relative z-10">
               <div className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-[var(--color-binance-gray)] mb-1">
-                <Coins size={16} className="text-[var(--color-binance-yellow)]" /> Số dư hiện tại
+                <CoinIcon size={16} className="mr-0.5" /> Số dư hiện tại
               </div>
               <div className="text-3xl sm:text-4xl font-black text-[var(--color-binance-yellow)] tracking-tight tabular-nums flex items-baseline gap-1.5 justify-center sm:justify-start">
                 {new Intl.NumberFormat("vi-VN").format(profile?.coins ?? 0)}
