@@ -266,7 +266,7 @@ export default function Home() {
                 <Coins className="text-[var(--color-binance-yellow)]" /> Trải nghiệm tính năng PRO & Nạp Coin tự động
               </h3>
               <p className="text-sm text-[var(--color-binance-gray)] leading-relaxed mb-6">
-                Thuê số nhận OTP với chi phí siêu rẻ chỉ từ vài trăm đồng. Nạp tiền cực nhanh qua VietQR Banking với nội dung chuyển khoản tự động tích hợp, xử lý giao dịch tự động trong 30 giây.
+                Nạp Coin một lần, sử dụng cho mọi dịch vụ và sản phẩm hiện tại và tương lai trong hệ sinh thái MMO Tools Hub. Nạp tiền tự động qua VietQR Banking tiện lợi, xử lý chỉ trong 30 giây.
               </p>
             </div>
             

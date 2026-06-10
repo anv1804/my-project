@@ -133,7 +133,7 @@ export default function ProfilePage() {
                 {new Intl.NumberFormat("vi-VN").format(profile?.coins ?? 0)}
                 <span className="text-sm font-semibold text-[var(--color-binance-light)]">Coin</span>
               </div>
-              <p className="text-xs text-[var(--color-binance-gray)] mt-2">1 Coin = 1 VND. Dùng để thanh toán dịch vụ thuê số nhận OTP.</p>
+              <p className="text-xs text-[var(--color-binance-gray)] mt-2">1 Coin = 1 VND. Đồng tiền chung dùng để thanh toán cho mọi dịch vụ và sản phẩm trên hệ thống.</p>
             </div>
             
             <Link 
