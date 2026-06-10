@@ -2,7 +2,7 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { syncCoins } from "@/utils/coinService";
 import { useEffect, useState } from "react";
-import { User, Mail, Shield, Coins, Calendar, ArrowRight, History, MessageSquare, Zap, ExternalLink } from "lucide-react";
+import { User, Mail, Shield, Coins, Calendar, ArrowRight, History, MessageSquare, Zap, ExternalLink, PhoneCall, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/common/Button";
 
