@@ -4,7 +4,8 @@ import { useLayoutStore } from "@/store/useLayoutStore";
 
 import { useAuthStore } from "@/store/useAuthStore";
 import { syncCoins } from "@/utils/coinService";
-import { Bell, User, Search, Menu, Sun, Moon, ArrowRight, LogOut, Coins } from "lucide-react";
+import Link from "next/link";
+import { Bell, User, Search, Menu, Sun, Moon, ArrowRight, LogOut, Coins, History, MessageSquare } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MENU_GROUPS } from "@/config/menu";
@@ -204,8 +205,8 @@ export default function Header() {
           </div>
         ) : user ? (
           <div className="relative flex items-center gap-2 ml-2 group">
-            <button
-              onClick={() => openLoginModal()}
+            <Link
+              href="/profile"
               className="flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
               <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[var(--color-binance-yellow)]/60 flex-shrink-0">
@@ -219,16 +220,44 @@ export default function Header() {
               <span className="text-sm font-medium hidden sm:block text-[var(--color-binance-light)] max-w-[100px] truncate">
                 {user.user_metadata?.full_name || user.user_metadata?.display_name || user.email?.split('@')[0]}
               </span>
-            </button>
+            </Link>
 
-            {/* Dropdown logout */}
-            <button
-              onClick={() => signOut()}
-              title="Đăng xuất"
-              className="hidden group-hover:flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 bg-[var(--color-binance-darker)] border border-red-400/20 px-2.5 py-1.5 rounded-lg transition-all absolute top-full right-0 mt-2 whitespace-nowrap shadow-xl z-50"
-            >
-              <LogOut size={13} /> Đăng xuất
-            </button>
+            {/* Dropdown Menu */}
+            <div className="hidden group-hover:block absolute right-0 top-full mt-2 w-48 bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-xl shadow-xl overflow-hidden z-50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
+              >
+                <User size={15} className="text-[var(--color-binance-gray)]" /> Trang cá nhân
+              </Link>
+              <Link
+                href="/thue-otp/lich-su"
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
+              >
+                <History size={15} className="text-[var(--color-binance-gray)]" /> Lịch sử thuê số
+              </Link>
+              <Link
+                href="/nap-coin"
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
+              >
+                <Coins size={15} className="text-[var(--color-binance-gray)]" /> Nạp Coin
+              </Link>
+              <Link
+                href="/dien-dan"
+                className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
+              >
+                <MessageSquare size={15} className="text-[var(--color-binance-gray)]" /> Diễn đàn
+              </Link>
+              
+              <div className="border-t border-[var(--color-binance-border)] my-1.5"></div>
+              
+              <button
+                onClick={() => signOut()}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors text-left"
+              >
+                <LogOut size={15} /> Đăng xuất
+              </button>
+            </div>
           </div>
         ) : (
           <div onClick={() => openLoginModal()} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ml-2">
