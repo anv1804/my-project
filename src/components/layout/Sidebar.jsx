@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/utils/cn";
@@ -9,7 +9,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { Home, ChevronDown, ChevronRight, ChevronLeft, Settings, X } from "lucide-react";
 import { MENU_GROUPS } from "@/config/menu";
 
-function NavContent({ isSidebarCollapsed, openGroups, toggleGroup, isCurrentPath, handleAction, onClose }) {
+function NavContent({ isSidebarCollapsed, openGroups, toggleGroup, isCurrentPath, handleAction, onClose, openPlatforms = {}, togglePlatform }) {
   return (
     <>
       {/* Nút Toggle (chỉ desktop) */}
@@ -44,7 +44,7 @@ function NavContent({ isSidebarCollapsed, openGroups, toggleGroup, isCurrentPath
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 overflow-x-hidden">
+      <nav className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 overflow-x-hidden animate-fade-in">
         <Link
           href="/"
           onClick={onClose ?? undefined}
@@ -94,6 +94,7 @@ function NavContent({ isSidebarCollapsed, openGroups, toggleGroup, isCurrentPath
                       const baseClass = "flex items-center gap-2 px-3 py-2 text-[13.5px] rounded-md transition-all duration-200";
                       const activeClass = "bg-[var(--color-binance-yellow)]/10 text-[var(--color-binance-yellow)] font-medium";
                       const inactiveClass = "text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50";
+                      
                       const itemContent = (
                         <>
                           <ItemIcon size={15} className="flex-shrink-0" />
@@ -103,6 +104,65 @@ function NavContent({ isSidebarCollapsed, openGroups, toggleGroup, isCurrentPath
                           )}
                         </>
                       );
+
+                      // If the item has sub-accordions (categories) under it
+                      if (item.subItems && item.subItems.length > 0) {
+                        const platformCode = item.href.split("platform=")[1];
+                        const isPlatformOpen = !!openPlatforms[platformCode];
+                        const active = isCurrentPath(item.href);
+
+                        return (
+                          <div key={idx} className="flex flex-col w-full">
+                            <Link 
+                              href={item.href} 
+                              onClick={() => {
+                                if (onClose) onClose();
+                                togglePlatform(platformCode);
+                              }} 
+                              className={cn(
+                                baseClass, 
+                                active ? activeClass : inactiveClass, 
+                                "w-full justify-between overflow-hidden cursor-pointer"
+                              )}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <ItemIcon size={15} className="flex-shrink-0" />
+                                <span className="truncate">{item.label}</span>
+                              </div>
+                              <ChevronDown 
+                                size={14} 
+                                className={cn("transition-transform duration-200 text-[var(--color-binance-gray)] shrink-0", isPlatformOpen ? "rotate-0" : "-rotate-90")} 
+                              />
+                            </Link>
+
+                            {/* Render sub-items categories dropdown */}
+                            {isPlatformOpen && (
+                              <div className="flex flex-col pl-4 mt-1 border-l border-[var(--color-binance-border)]/50 gap-0.5 ml-5 mb-1.5 animate-in fade-in duration-200">
+                                {item.subItems.map((subItem, sIdx) => {
+                                  const subHref = `/smm?platform=${platformCode}&category=${encodeURIComponent(subItem)}`;
+                                  const isSubActive = isCurrentPath(subHref);
+                                  return (
+                                    <Link
+                                      key={sIdx}
+                                      href={subHref}
+                                      onClick={onClose ?? undefined}
+                                      className={cn(
+                                        "w-full text-left px-2.5 py-1.5 text-[12.5px] rounded transition-all cursor-pointer truncate",
+                                        isSubActive 
+                                          ? "text-[var(--color-binance-yellow)] bg-[var(--color-binance-yellow)]/10 font-bold" 
+                                          : "text-[var(--color-binance-gray)]/80 hover:text-white hover:bg-[var(--color-binance-border)]/20"
+                                      )}
+                                    >
+                                      {subItem}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
                       if (item.type === "link") {
                         const active = isCurrentPath(item.href);
                         return (
@@ -151,6 +211,8 @@ export default function Sidebar() {
     tiktok: true, otp: true, facebook: true, ai: true, community: true, support: true,
   });
 
+  const [openPlatforms, setOpenPlatforms] = useState({});
+
   const toggleGroup = (group) => {
     if (group.id === '__toggle__') { toggleSidebar(); return; }
     const key = group.id;
@@ -163,13 +225,59 @@ export default function Sidebar() {
     if (group.href) router.push(group.href);
   };
 
-  const isCurrentPath = (href) => pathname === href;
+  const togglePlatform = (platformCode) => {
+    setOpenPlatforms(prev => ({
+      ...prev,
+      [platformCode]: !prev[platformCode]
+    }));
+  };
+
+  const [currentQuery, setCurrentQuery] = useState("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const search = window.location.search || "";
+      setCurrentQuery(search);
+
+      // Auto-expand platform sub-accordion when navigated directly
+      const params = new URLSearchParams(search);
+      const platform = params.get("platform");
+      if (platform) {
+        setOpenPlatforms(prev => ({ ...prev, [platform.toLowerCase()]: true }));
+      }
+    }
+  }, [pathname]);
+
+  const isCurrentPath = (href) => {
+    if (href.includes("?")) {
+      const [path, query] = href.split("?");
+      if (pathname !== path) return false;
+
+      const params = new URLSearchParams(query);
+      const currentParams = new URLSearchParams(currentQuery);
+
+      for (const [key, value] of params.entries()) {
+        if (currentParams.get(key) !== value) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return pathname === href;
+  };
 
   const handleAction = (actionId) => {
     if (actionId === "history") openLoginModal("Tính năng xem Lịch sử tạo yêu cầu đăng nhập tài khoản Pro!");
   };
 
-  const sharedProps = { isSidebarCollapsed, openGroups, toggleGroup, isCurrentPath, handleAction };
+  const sharedProps = { 
+    isSidebarCollapsed, 
+    openGroups, 
+    toggleGroup, 
+    isCurrentPath, 
+    handleAction,
+    openPlatforms,
+    togglePlatform
+  };
 
   return (
     <>

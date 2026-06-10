@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { supabaseServer } from '@/lib/supabase';
+import { checkSpamBan, recordSpamAction } from '@/utils/serverUtils';
 
 // GET /api/forum — Lấy danh sách bài viết (có phân trang)
 export async function GET(request) {
@@ -27,6 +28,12 @@ export async function POST(request) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // Kiểm tra spam ban
+  const banInfo = await checkSpamBan(request, user.id);
+  if (banInfo.banned) {
+    return NextResponse.json({ success: false, spam_ban: banInfo }, { status: 403 });
+  }
+
   const body = await request.json();
   const { title, content } = body;
 
@@ -41,6 +48,9 @@ export async function POST(request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Ghi nhận để chống spam bài viết
+  recordSpamAction(request, user.id, 'forum_post').catch(() => {});
 
   return NextResponse.json({ data }, { status: 201 });
 }

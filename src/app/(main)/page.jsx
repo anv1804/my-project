@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, Shuffle, Sparkles, Hash, PhoneCall, History, Type, Mic, MessageSquare, ArrowRight, Zap, Shield, HelpCircle, Users, Trophy, TrendingUp } from "lucide-react";
+import { Download, Shuffle, Sparkles, Hash, PhoneCall, History, Type, Mic, MessageSquare, ArrowRight, Zap, Shield, HelpCircle, Users, Trophy, TrendingUp, ShoppingBag } from "lucide-react";
 
 // Custom SVGs from config/menu.jsx
 const TiktokIcon = ({ size = 20, className }) => (
@@ -54,6 +54,18 @@ export default function Home() {
       items: [
         { href: "/thue-otp", label: "Thuê Số Nhận OTP", icon: PhoneCall, desc: "Cấp số nhanh, tự động nhận code trong 2 phút." },
         { href: "/thue-otp/lich-su", label: "Lịch Sử Thuê Số", icon: History, desc: "Quản lý mã OTP và sao lưu báo cáo giao dịch." }
+      ]
+    },
+    {
+      id: "smm",
+      title: "Dịch Vụ SMM Tương Tác",
+      description: "Tăng lượt Tim, Follow, Like, View, Comment tự động cho các nền tảng mạng xã hội và sàn thương mại điện tử.",
+      badge: "Mới",
+      gradient: "from-rose-500/10 to-pink-500/10 border-rose-500/20 hover:border-rose-500/50",
+      icon: ShoppingBag,
+      iconColor: "text-rose-400",
+      items: [
+        { href: "/smm", label: "Tăng Tương Tác SMM", icon: Sparkles, desc: "Tăng Follow, Like, View tự động qua hệ thống đại lý." }
       ]
     },
     {

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { logAction, getClientIp, createAdminClient } from '@/utils/serverUtils';
+import { logAction, getClientIp, createAdminClient, checkSpamBan, recordSpamAction } from '@/utils/serverUtils';
 
 const VIOTP_TOKEN = process.env.VIOTP_API_TOKEN;
 const RERENT_WINDOW_MS = 30 * 60 * 1000;
@@ -96,6 +96,12 @@ export async function POST(request) {
 
   // ─── action: rent — toàn bộ flow thuê số server-side ──────────────────────
   if (action === 'rent') {
+    // Kiểm tra spam ban
+    const banInfo = await checkSpamBan(request, user.id);
+    if (banInfo.banned) {
+      return NextResponse.json({ success: false, spam_ban: banInfo }, { status: 403 });
+    }
+
     const { service_id, service_name, country = 'vn', networks, prefix, except_prefix, custom_number } = body;
 
     if (!service_id || !service_name) {
@@ -194,13 +200,18 @@ export async function POST(request) {
       ip, ua,
     });
 
-    return NextResponse.json({
+    const rentResponse = NextResponse.json({
       success: true,
       data: item,
       coinCost,
       coinsNow: deductData.coins,
       rerentWindow: eligibility.rerentWindow,
     });
+
+    // Ghi nhận để chống spam thuê số
+    recordSpamAction(request, user.id, 'otp_rent').catch(() => {});
+
+    return rentResponse;
   }
 
   // ─── action: update — cập nhật trạng thái + hoàn coin nếu hết hạn ────────

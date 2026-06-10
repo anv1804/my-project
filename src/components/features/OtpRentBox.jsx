@@ -23,31 +23,22 @@ const formatCoin = (num) => {
   return new Intl.NumberFormat("vi-VN").format(Math.round(num * 2)) + " coin";
 };
 
-// Inline brand SVG icons
-const BrandIcon = ({ name }) => {
-  switch (name) {
-    case "gmail": return (
-      <svg width="15" height="15" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#EA4335"/><path d="M8 14l16 11L40 14" stroke="white" strokeWidth="3" fill="none" strokeLinejoin="round"/><path d="M8 14v20h32V14L24 25 8 14z" fill="#EA4335"/><path d="M8 14l16 11L40 14" stroke="white" strokeWidth="2.5" fill="none"/></svg>
-    );
-    case "telegram": return (
-      <svg width="15" height="15" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#2CA5E0"/><path d="M10 23.5l8 3.5 3 8.5 4-5 7 5 6-22-28 10z" fill="white"/><path d="M18 27l-1 7 3-4" fill="#C8DAEA"/></svg>
-    );
-    case "facebook": return (
-      <svg width="15" height="15" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#1877F2"/><path d="M32 8h-5c-3.3 0-6 2.7-6 6v4h-4v6h4v16h6V24h4l1-6h-5v-4c0-1.1.9-2 2-2h3V8z" fill="white"/></svg>
-    );
-    case "shopee": return (
-      <svg width="15" height="15" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#EE4D2D"/><path d="M24 8c-4.4 0-8 3.6-8 8h-6l2 24h24l2-24h-6c0-4.4-3.6-8-8-8zm0 3c2.8 0 5 2.2 5 5H19c0-2.8 2.2-5 5-5zm0 14a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" fill="white"/></svg>
-    );
-    case "viber": return (
-      <svg width="15" height="15" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#7360F2"/><path d="M24 8C15.2 8 8 14.4 8 22.2c0 4.7 2.4 8.9 6.2 11.6v5.2l5-2.4c1.5.4 3.2.6 4.8.6 8.8 0 16-6.4 16-14.2C40 14.4 32.8 8 24 8zm8 17.4l-2.6 2.6c-.4.4-1 .5-1.4.2-1.2-.8-2.4-1.8-3.4-2.9-1-1-2-2.2-2.8-3.4-.3-.5-.2-1.1.2-1.5l2.4-2.4c.4-.4.4-1 0-1.4l-3-3c-.4-.4-1-.4-1.4 0l-1.8 1.8c-.8.8-1 2-.6 3 1.4 3.8 4.4 6.8 8.2 8.2 1 .4 2.2.2 3-.6L32 24c.4-.4 1-.4 1.4 0l.6.6c.4.4.4 1 0 1.4l-2 1.4z" fill="white"/></svg>
-    );
-    case "tiktok": return (
-      <svg width="15" height="15" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#010101"/><path d="M34 12c-2.5 0-4.8-1.5-5.8-3.8V28a8 8 0 1 1-8-8v4.4a3.6 3.6 0 1 0 3.6 3.6V6h4c.2 2.8 2 5.2 4.5 6.5V16c-1.6 0-3.2-.4-4.5-1.2" fill="white"/></svg>
-    );
-    default: return (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-binance-gray)]"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-    );
-  }
+// Brand icon using local image files
+const BrandIcon = ({ name, className = "w-4.5 h-4.5 rounded-sm object-contain" }) => {
+  const n = name?.toLowerCase();
+  const src = ["gmail", "telegram", "facebook", "shopee", "viber", "tiktok"].includes(n)
+    ? `/logos/${n}.svg`
+    : `/logos/default.svg`;
+  return (
+    <img
+      src={src}
+      alt={name}
+      className={className}
+      onError={(e) => {
+        e.target.src = "/logos/default.svg";
+      }}
+    />
+  );
 };
 
 // Network brand config
@@ -56,8 +47,14 @@ const NETWORK_CONFIG = {
   VINAPHONE:    { color: "#CC0000", label: "Vinaphone" },
   VIETTEL:      { color: "#E30613", label: "Viettel" },
   VIETNAMOBILE: { color: "#FF6D00", label: "Vietnamobile" },
-  ITELECOM:     { color: "#9B51E0", label: "Itelecom" },
+  ITELECOM:     { color: "#9B51E0", label: "iTel" },
   WINTEL:       { color: "#0EA5E9", label: "Wintel" },
+  UNITEL:       { color: "#006A4E", label: "Unitel" },
+  ETL:          { color: "#0047AB", label: "ETL" },
+  BEELINE:      { color: "#EC4899", label: "Tplus" },
+  TPLUS:        { color: "#EC4899", label: "Tplus" },
+  LAOTEL:       { color: "#EA580C", label: "LTC" },
+  LTC:          { color: "#EA580C", label: "LTC" },
 };
 
 export default function OtpRentBox() {
@@ -545,7 +542,15 @@ export default function OtpRentBox() {
                     onClick={() => setCountry(code)}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-sm border text-sm font-medium transition-all cursor-pointer ${country === code ? "border-[var(--color-binance-yellow)] bg-[var(--color-binance-yellow)]/10 text-[var(--color-binance-yellow)]" : "border-[var(--color-binance-border)] bg-[var(--color-binance-darker)] text-[var(--color-binance-gray)] hover:border-gray-500 hover:text-white"}`}
                   >
-                    <Globe size={16} /> {label}
+                    <img
+                      src={`/logos/${code}.svg`}
+                      alt={label}
+                      className="w-5 h-4 object-cover rounded-sm"
+                      onError={(e) => {
+                        e.target.src = "/logos/default.svg";
+                      }}
+                    />
+                    {label}
                   </button>
                 ))}
               </div>
@@ -633,9 +638,13 @@ export default function OtpRentBox() {
                         onClick={() => toggleNetwork(net.name)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-md border text-xs transition-all cursor-pointer font-medium ${isSel ? "border-[var(--color-binance-yellow)] bg-[var(--color-binance-yellow)]/10 text-[var(--color-binance-yellow)]" : "border-[var(--color-binance-border)] bg-[var(--color-binance-darker)] text-[var(--color-binance-gray)] hover:text-white hover:border-gray-500"}`}
                       >
-                        <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-white/10"
-                          style={{ backgroundColor: isSel ? "var(--color-binance-yellow)" : "#22c55e" }}
+                        <img
+                          src={`/logos/${net.name.toLowerCase()}.svg`}
+                          alt={cfg.label}
+                          className="w-5 h-5 rounded-md object-contain bg-white p-0.5"
+                          onError={(e) => {
+                            e.target.src = "/logos/default.svg";
+                          }}
                         />
                         {cfg.label}
                       </button>

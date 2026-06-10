@@ -121,3 +121,151 @@ export function setCache(key, data, ttlMs = 300000) { // Mặc định 5 phút
     expiry: Date.now() + ttlMs
   });
 }
+
+// ─── Anti-Spam System ─────────────────────────────────────────────────────────
+
+/**
+ * Ngưỡng spam theo từng action type.
+ * limit: số lần tối đa trong windowMs, banMs: thời gian bị khoá.
+ */
+const SPAM_RULES = {
+  smm_order:   { limit: 10, windowMs: 60_000,  banMs: 15 * 60_000 },
+  otp_rent:    { limit: 5,  windowMs: 60_000,  banMs: 30 * 60_000 },
+  download:    { limit: 20, windowMs: 60_000,  banMs: 10 * 60_000 },
+  tts:         { limit: 15, windowMs: 60_000,  banMs: 10 * 60_000 },
+  forum_post:  { limit: 5,  windowMs: 120_000, banMs: 20 * 60_000 },
+  payment:     { limit: 8,  windowMs: 60_000,  banMs: 30 * 60_000 },
+  any:         { limit: 50, windowMs: 60_000,  banMs: 60 * 60_000 },
+};
+
+// In-memory action counter: key → [timestamp, ...]
+const _actionLog = new Map();
+
+function _recordLocal(key, action) {
+  const now = Date.now();
+  const mapKey = `${key}:${action}`;
+  const times = (_actionLog.get(mapKey) || []).filter(t => now - t < 3_600_000); // giữ tối đa 1h
+  times.push(now);
+  _actionLog.set(mapKey, times);
+
+  const anyKey = `${key}:any`;
+  const anyTimes = (_actionLog.get(anyKey) || []).filter(t => now - t < 3_600_000);
+  anyTimes.push(now);
+  _actionLog.set(anyKey, anyTimes);
+
+  return { times, anyTimes };
+}
+
+function _countInWindow(times, windowMs) {
+  const now = Date.now();
+  return times.filter(t => now - t <= windowMs).length;
+}
+
+/**
+ * Kiểm tra xem user/IP/fingerprint hiện tại có đang bị ban không.
+ * @returns {{ banned: boolean, bannedUntil?: Date, reason?: string }}
+ */
+export async function checkSpamBan(request, userId = null) {
+  try {
+    const admin = createAdminClient();
+    const ip = getClientIp(request);
+    const fingerprint = request.headers.get('x-device-fp') || null;
+    const now = new Date().toISOString();
+
+    // Xây conditions để OR check
+    let query = admin
+      .from('spam_bans')
+      .select('banned_until, reason')
+      .gt('banned_until', now);
+
+    if (userId) {
+      query = query.or(`user_id.eq.${userId},ip.eq.${ip}${fingerprint ? `,fingerprint.eq.${fingerprint}` : ''}`);
+    } else {
+      query = query.or(`ip.eq.${ip}${fingerprint ? `,fingerprint.eq.${fingerprint}` : ''}`);
+    }
+
+    const { data } = await query.limit(1).single();
+
+    if (data) {
+      return {
+        banned: true,
+        bannedUntil: data.banned_until,
+        reason: data.reason || 'Hành vi đáng ngờ',
+      };
+    }
+  } catch {
+    // Nếu lỗi DB (vd bảng chưa tạo) → không block người dùng
+  }
+  return { banned: false };
+}
+
+/**
+ * Phát ban: ghi vào bảng spam_bans.
+ */
+export async function issueBan(userId, ip, fingerprint, ua, banMs, reason) {
+  try {
+    const admin = createAdminClient();
+    const bannedUntil = new Date(Date.now() + banMs).toISOString();
+    await admin.from('spam_bans').insert({
+      user_id: userId || null,
+      ip: ip || null,
+      fingerprint: fingerprint || null,
+      browser_ua: ua ? ua.slice(0, 300) : null,
+      banned_until: bannedUntil,
+      reason,
+    });
+    console.warn(`[AntiSpam] BAN issued → user:${userId} ip:${ip} fp:${fingerprint} until:${bannedUntil} reason:${reason}`);
+    return bannedUntil;
+  } catch (err) {
+    console.error('[AntiSpam] issueBan error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Ghi nhận hành động và tự động ban nếu vượt ngưỡng.
+ * Gọi cuối mỗi API handler sau khi xử lý thành công.
+ *
+ * @param {Request} request
+ * @param {string|null} userId
+ * @param {string} action - 'smm_order' | 'otp_rent' | 'download' | 'tts' | 'forum_post' | 'payment'
+ * @returns {{ banned: boolean, bannedUntil?: string }} — nếu vừa bị ban
+ */
+export async function recordSpamAction(request, userId, action) {
+  try {
+    const ip = getClientIp(request);
+    const fingerprint = request.headers.get('x-device-fp') || null;
+    const ua = request.headers.get('user-agent') || '';
+
+    // Dùng nhiều keys để check tất cả chiều
+    const keys = [
+      userId ? `user:${userId}` : null,
+      `ip:${ip}`,
+      fingerprint ? `fp:${fingerprint}` : null,
+    ].filter(Boolean);
+
+    const ruleAction = SPAM_RULES[action] || null;
+    const ruleAny   = SPAM_RULES['any'];
+
+    for (const key of keys) {
+      const { times, anyTimes } = _recordLocal(key, action);
+
+      // Kiểm tra ngưỡng cho action cụ thể
+      if (ruleAction && _countInWindow(times, ruleAction.windowMs) >= ruleAction.limit) {
+        const reason = `Spam ${action}: vượt ${ruleAction.limit} lần/${ruleAction.windowMs / 1000}s`;
+        const bannedUntil = await issueBan(userId, ip, fingerprint, ua, ruleAction.banMs, reason);
+        return { banned: true, bannedUntil, reason };
+      }
+
+      // Kiểm tra ngưỡng tổng (any)
+      if (_countInWindow(anyTimes, ruleAny.windowMs) >= ruleAny.limit) {
+        const reason = `Spam tổng: vượt ${ruleAny.limit} request/${ruleAny.windowMs / 1000}s`;
+        const bannedUntil = await issueBan(userId, ip, fingerprint, ua, ruleAny.banMs, reason);
+        return { banned: true, bannedUntil, reason };
+      }
+    }
+  } catch (err) {
+    console.error('[AntiSpam] recordSpamAction error:', err.message);
+  }
+  return { banned: false };
+}

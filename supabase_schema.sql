@@ -347,6 +347,36 @@ CREATE INDEX IF NOT EXISTS idx_otp_rentals_user_phone ON public.otp_rentals(user
 CREATE INDEX IF NOT EXISTS idx_coin_transactions_reference ON public.coin_transactions(reference, status);
 
 -- ================================================================
+-- Bảng smm_orders — lưu lịch sử đơn hàng SMM từ trumlike.vip
+-- ================================================================
+CREATE TABLE IF NOT EXISTS public.smm_orders (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  order_id     BIGINT, -- ID đơn hàng nhận từ trumlike.vip
+  service_id   INT NOT NULL,
+  service_name TEXT NOT NULL,
+  platform     TEXT,
+  category     TEXT,
+  link         TEXT NOT NULL,
+  quantity     INT NOT NULL,
+  coin_cost    BIGINT NOT NULL,
+  charge       TEXT, -- Chi phí thực tế trả cho trumlike (để theo dõi lợi nhuận)
+  status       TEXT NOT NULL DEFAULT 'Pending', -- Pending, In progress, Completed, Canceled, Partial, etc.
+  start_count  INT DEFAULT 0,
+  remains      INT DEFAULT 0,
+  created_at   TIMESTAMPTZ DEFAULT now() NOT NULL,
+  completed_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.smm_orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users view own smm_orders"   ON public.smm_orders FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own smm_orders" ON public.smm_orders FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own smm_orders" ON public.smm_orders FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_smm_orders_user_status ON public.smm_orders(user_id, status);
+
+-- ================================================================
 -- Kiểm tra kết quả
 -- ================================================================
 SELECT column_name, data_type, column_default, is_nullable

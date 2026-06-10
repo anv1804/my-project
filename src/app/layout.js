@@ -3,6 +3,7 @@ import NextTopLoader from 'nextjs-toploader';
 
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import AuthInitializer from "@/components/providers/AuthInitializer";
+import { AntispamProvider } from "@/components/providers/AntispamProvider";
 import { createClient } from "@/utils/supabase/server";
 import "./globals.css";
 
@@ -105,7 +106,9 @@ export default async function RootLayout({ children }) {
             speed={200}
             shadow="0 0 10px #F0B90B,0 0 5px #F0B90B"
           />
-          {children}
+          <AntispamProvider>
+            {children}
+          </AntispamProvider>
           <AuthInitializer initialUser={initialUser} />
           <ToastProvider />
       </body>
