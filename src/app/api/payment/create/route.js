@@ -93,8 +93,8 @@ export async function POST(request) {
     }
 
     const qrUrl =
-      `https://img.vietqr.io/image/${BANK_ID}-${BANK_ACCOUNT_NO}-compact2.png` +
-      `?amount=${amount}&addInfo=${encodeURIComponent(reference)}&accountName=${encodeURIComponent(BANK_ACCOUNT_NAME)}`;
+      `https://qr.sepay.vn/img?bank=${BANK_ID}&acc=${BANK_ACCOUNT_NO}` +
+      `&template=compact&amount=${amount}&des=${encodeURIComponent(reference)}`;
 
     return NextResponse.json({
       success: true,
