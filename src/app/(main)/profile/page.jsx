@@ -1,21 +1,23 @@
 "use client";
 import { useAuthStore } from "@/store/useAuthStore";
 import { syncCoins } from "@/utils/coinService";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { User, Mail, Shield, Coins, Calendar, ArrowRight, History, MessageSquare, Zap, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/common/Button";
 
 export default function ProfilePage() {
   const { user, profile, isLoading, openLoginModal } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (user) {
       syncCoins();
     }
   }, [user]);
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="max-w-4xl mx-auto py-20 px-4 text-center">
         <div className="w-12 h-12 border-4 border-[var(--color-binance-yellow)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
