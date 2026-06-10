@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { logAction, getClientIp } from '@/utils/serverUtils';
+import { createAdminClient, logAction, getClientIp } from '@/utils/serverUtils';
 
 const WEBHOOK_SECRET  = process.env.SEPAY_WEBHOOK_SECRET;
 const BANK_ACCOUNT_NO = process.env.BANK_ACCOUNT_NO;
@@ -50,7 +49,7 @@ export async function POST(request) {
   }
 
   const reference = match[0];
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc('complete_coin_transaction', {
     p_reference: reference,
