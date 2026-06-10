@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { updateSession } from './utils/supabase/middleware';
+import { updateSession } from './utils/supabase/middleware'; // helper util - not the file convention
 
-export async function middleware(request) {
+export async function proxy(request) {
   // 1. Cập nhật session cho Supabase
   const supabaseResponse = await updateSession(request);
 
