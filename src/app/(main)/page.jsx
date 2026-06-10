@@ -1,16 +1,10 @@
 import Link from "next/link";
-import { Download, Shuffle, Sparkles, Hash, PhoneCall, History, Type, Mic, MessageSquare, ArrowRight, Coins, Zap, Shield, HelpCircle, Users } from "lucide-react";
+import { Download, Shuffle, Sparkles, Hash, PhoneCall, History, Type, Mic, MessageSquare, ArrowRight, Coins, Zap, Shield, HelpCircle, Users, Trophy, TrendingUp } from "lucide-react";
 
 // Custom SVGs from config/menu.jsx
 const TiktokIcon = ({ size = 20, className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
     <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-5.394 10.692 6.33 6.33 0 0 0 10.857-4.424V8.687a8.182 8.182 0 0 0 4.773 1.526V6.79a4.831 4.831 0 0 1-1.003-.104z"/>
-  </svg>
-);
-
-const FacebookIcon = ({ size = 20, className }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
   </svg>
 );
 
@@ -70,8 +64,46 @@ export default function Home() {
     }
   ];
 
+  // Fake Recent Activities
+  const recentActivities = [
+    { user: "hoang***", action: "thuê OTP Telegram", price: "1,500đ", time: "vừa xong" },
+    { user: "thanh***", action: "nạp tiền VietQR", price: "100,000đ", time: "1 phút trước" },
+    { user: "mmo_pro***", action: "đổi mã MD5 video", price: "Miễn phí", time: "2 phút trước" },
+    { user: "anh_tuan***", action: "thuê OTP Facebook", price: "1,200đ", time: "3 phút trước" },
+    { user: "nguyen_van***", action: "nạp tiền VietQR", price: "50,000đ", time: "5 phút trước" },
+    { user: "quang_huy***", action: "tạo giọng đọc AI", price: "Miễn phí", time: "7 phút trước" },
+    { user: "vip_mmo***", action: "nạp tiền VietQR", price: "500,000đ", time: "10 phút trước" },
+    { user: "creator***", action: "thuê OTP Gmail", price: "2,000đ", time: "12 phút trước" },
+    { user: "reup_tiktok***", action: "tải video TikTok", price: "Miễn phí", time: "15 phút trước" },
+    { user: "linh***", action: "nạp tiền VietQR", price: "200,000đ", time: "18 phút trước" }
+  ];
+
+  // Fake Top Depositors (Weekly)
+  const topDepositors = [
+    { rank: 1, user: "mmo_king***", amount: "5,000,000đ", color: "text-yellow-400" },
+    { rank: 2, user: "reup_pro***", amount: "3,500,000đ", color: "text-slate-300" },
+    { rank: 3, user: "hoang_mmo***", amount: "2,000,000đ", color: "text-amber-600" },
+    { rank: 4, user: "tuan_affiliate***", amount: "1,500,000đ", color: "text-[var(--color-binance-gray)]" },
+    { rank: 5, user: "quang_tools***", amount: "1,000,000đ", color: "text-[var(--color-binance-gray)]" }
+  ];
+
   return (
     <main className="min-h-screen bg-[var(--color-binance-darker)] pb-20">
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          display: flex;
+          width: max-content;
+          animation: marquee 30s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden py-16 sm:py-24 border-b border-[var(--color-binance-border)] bg-gradient-to-b from-[var(--color-binance-dark)] to-[var(--color-binance-darker)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-yellow-500/5 via-transparent to-transparent"></div>
@@ -105,8 +137,27 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Live Transaction Marquee Ticker */}
+      <div className="relative w-full overflow-hidden bg-[var(--color-binance-dark)] border-y border-[var(--color-binance-border)] py-3 z-10 shadow-sm">
+        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[var(--color-binance-dark)] to-transparent z-20 pointer-events-none"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[var(--color-binance-dark)] to-transparent z-20 pointer-events-none"></div>
+        
+        <div className="animate-marquee gap-8 items-center">
+          {/* Loop twice for seamless infinite scrolling */}
+          {[...recentActivities, ...recentActivities].map((act, idx) => (
+            <div key={idx} className="flex items-center gap-2 px-4 py-1 bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-full text-xs shrink-0 select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-binance-success)] animate-pulse"></span>
+              <span className="font-semibold text-[var(--color-binance-light)]">{act.user}</span>
+              <span className="text-[var(--color-binance-gray)]">{act.action}</span>
+              <span className="font-bold text-[var(--color-binance-yellow)] bg-[var(--color-binance-yellow)]/5 px-1.5 py-0.5 rounded border border-[var(--color-binance-yellow)]/10">{act.price}</span>
+              <span className="text-[10px] text-[var(--color-binance-gray)] italic">{act.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Stats Feature Section */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-8 relative z-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-8 relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-xl p-6 sm:p-8 shadow-xl backdrop-blur-md">
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-lg bg-[var(--color-binance-yellow)]/10 text-[var(--color-binance-yellow)]">
@@ -203,24 +254,71 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Quick Banner topup */}
+      {/* Top Depositors & Quick Topup Section */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-16 sm:mt-24">
-        <div className="bg-gradient-to-r from-yellow-500/10 via-[var(--color-binance-dark)] to-orange-500/10 border border-[var(--color-binance-yellow)]/25 rounded-2xl p-6 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="text-center md:text-left relative z-10 max-w-xl">
-            <h3 className="text-xl sm:text-2xl font-bold text-[var(--color-binance-light)] flex items-center justify-center md:justify-start gap-2">
-              <Coins className="text-[var(--color-binance-yellow)]" /> Trải nghiệm tính năng PRO & Nạp Coin tự động
-            </h3>
-            <p className="text-sm text-[var(--color-binance-gray)] mt-2 leading-relaxed">
-              Thuê số nhận OTP với chi phí siêu rẻ chỉ từ vài trăm đồng. Nạp tiền cực nhanh qua VietQR Banking với nội dung chuyển khoản tự động tích hợp.
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Left Side: Quick Topup Banner */}
+          <div className="lg:col-span-7 bg-gradient-to-r from-yellow-500/10 via-[var(--color-binance-dark)] to-orange-500/10 border border-[var(--color-binance-yellow)]/25 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="relative z-10">
+              <h3 className="text-xl sm:text-2xl font-bold text-[var(--color-binance-light)] flex items-center gap-2 mb-3">
+                <Coins className="text-[var(--color-binance-yellow)]" /> Trải nghiệm tính năng PRO & Nạp Coin tự động
+              </h3>
+              <p className="text-sm text-[var(--color-binance-gray)] leading-relaxed mb-6">
+                Thuê số nhận OTP với chi phí siêu rẻ chỉ từ vài trăm đồng. Nạp tiền cực nhanh qua VietQR Banking với nội dung chuyển khoản tự động tích hợp, xử lý giao dịch tự động trong 30 giây.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-between border-t border-[var(--color-binance-border)] pt-4 mt-4 relative z-10">
+              <span className="text-xs text-[var(--color-binance-gray)] flex items-center gap-1">
+                <TrendingUp size={14} className="text-[var(--color-binance-success)]" /> Tốc độ xử lý: ~30 giây
+              </span>
+              <Link
+                href="/nap-coin"
+                className="px-6 py-3 bg-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-yellow-hover)] text-black font-bold rounded-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer whitespace-nowrap shadow-lg shadow-yellow-500/10"
+              >
+                Nạp Coin Ngay <ArrowRight size={16} />
+              </Link>
+            </div>
           </div>
-          <Link
-            href="/nap-coin"
-            className="px-6 py-3 bg-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-yellow-hover)] text-black font-bold rounded-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer z-10 whitespace-nowrap"
-          >
-            Nạp Coin Ngay <ArrowRight size={16} />
-          </Link>
+
+          {/* Right Side: Leaderboard Top Depositors */}
+          <div className="lg:col-span-5 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-lg font-bold text-[var(--color-binance-light)] flex items-center gap-2">
+                  <Trophy className="text-[var(--color-binance-yellow)]" size={18} /> BXH Đua Top Nạp Coin
+                </h3>
+                <span className="text-[10px] font-bold text-[var(--color-binance-yellow)] bg-[var(--color-binance-yellow)]/10 px-2 py-0.5 rounded-full border border-[var(--color-binance-yellow)]/20 uppercase">
+                  Tuần này
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {topDepositors.map((dep, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)]/50 hover:border-[var(--color-binance-border)] transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Rank badge */}
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${dep.rank <= 3 ? 'bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] shadow-sm' : ''} ${dep.color}`}>
+                        {dep.rank === 1 ? "🥇" : dep.rank === 2 ? "🥈" : dep.rank === 3 ? "🥉" : dep.rank}
+                      </span>
+                      <span className="text-sm font-semibold text-[var(--color-binance-light)]">{dep.user}</span>
+                    </div>
+                    <span className="text-sm font-bold text-[var(--color-binance-yellow)] tabular-nums">{dep.amount}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-[11px] text-[var(--color-binance-gray)] text-center mt-5 pt-3 border-t border-[var(--color-binance-border)]">
+              Cập nhật tự động mỗi 10 phút. Đua TOP để nhận phần thưởng khuyến mãi!
+            </div>
+          </div>
+
         </div>
       </div>
     </main>
