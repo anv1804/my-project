@@ -19,14 +19,15 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "MMO Tools Hub - Nền tảng công cụ tự động hóa",
   description: "Bộ công cụ tải video không logo và dịch vụ Landing page cho dân MMO.",
+  viewport: "width=device-width, initial-scale=1, minimum-scale=1",
 };
 
 export default async function RootLayout({ children }) {
   let initialUser = null;
   try {
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    initialUser = session?.user ?? null;
+    const { data: { user } } = await supabase.auth.getUser();
+    initialUser = user ?? null;
   } catch {
     // Supabase chưa cấu hình hoặc lỗi đọc session — giữ null
   }

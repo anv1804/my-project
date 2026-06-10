@@ -325,9 +325,9 @@ export default function TtsBox() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Cột trái: Nhập văn bản */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="md:col-span-2 space-y-4">
           <div className="space-y-3">
             {blocks.map((blockText, index) => (
               <div key={index} className="relative group">
@@ -553,7 +553,7 @@ export default function TtsBox() {
       {/* Crop Modal */}
       {cropModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
+          <div className="bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl w-[calc(100vw-2rem)] max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-4 border-b border-[var(--color-binance-border)]">
               <h3 className="text-lg font-bold text-[var(--color-binance-light)] flex items-center gap-2">
                 <Crop size={20} className="text-[var(--color-binance-yellow)]" />

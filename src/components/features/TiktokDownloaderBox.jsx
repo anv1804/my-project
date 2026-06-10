@@ -57,7 +57,7 @@ export default function TiktokDownloaderBox() {
   };
 
   return (
-    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 shadow-xl">
+    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-xl">
       <div className="flex flex-col sm:flex-row gap-3">
         <Input 
           placeholder="Dán link video TikTok / Douyin vào đây..." 
@@ -78,11 +78,11 @@ export default function TiktokDownloaderBox() {
 
       {result && (
         <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h3 className="text-lg font-bold text-[var(--color-binance-light)] mb-4 flex items-center gap-2 border-b border-[var(--color-binance-border)] pb-2">
+          <h3 className="text-sm sm:text-lg font-bold text-[var(--color-binance-light)] mb-4 flex items-center gap-2 border-b border-[var(--color-binance-border)] pb-2">
             <Video size={20} className="text-[var(--color-binance-yellow)]" /> Thông tin Video
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             
             {/* Cột 1: Video Demo */}
             <div className="md:col-span-1 bg-black rounded-lg overflow-hidden border border-[var(--color-binance-border)] flex items-center justify-center relative aspect-[9/16] max-h-[400px] mx-auto w-full max-w-[220px] md:max-w-none">
@@ -112,7 +112,7 @@ export default function TiktokDownloaderBox() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
                   <div className="flex flex-col items-center p-2 bg-[var(--color-binance-darker)] rounded-md border border-[var(--color-binance-border)]">
                     <Eye size={16} className="text-blue-400 mb-1" />
                     <span className="font-bold text-[var(--color-binance-light)] text-sm">{result.stats?.views}</span>

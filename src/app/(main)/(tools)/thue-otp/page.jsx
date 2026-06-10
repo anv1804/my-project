@@ -1,4 +1,5 @@
 import OtpRentBox from "@/components/features/OtpRentBox";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Thuê Số Điện Thoại Nhận OTP Online - MMO Tools",
@@ -18,7 +19,13 @@ export default function OtpRentPage() {
         </p>
       </div>
       <div className="w-full max-w-7xl">
-        <OtpRentBox />
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-20 text-[var(--color-binance-gray)]">
+            <span className="text-sm">Đang tải biểu mẫu...</span>
+          </div>
+        }>
+          <OtpRentBox />
+        </Suspense>
       </div>
     </main>
   );

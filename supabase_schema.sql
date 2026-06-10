@@ -79,17 +79,6 @@ CREATE POLICY "User can update own profile"
   USING ((SELECT auth.uid()) = id)
   WITH CHECK ((SELECT auth.uid()) = id);
 
--- Admin có thể xem và sửa tất cả
-CREATE POLICY "Admin full access"
-  ON public.users FOR ALL
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE id = (SELECT auth.uid()) AND role = 'admin'
-    )
-  );
-
 -- 7. Grant quyền cho anon và authenticated roles
 GRANT SELECT ON public.users TO anon, authenticated;
 GRANT UPDATE (display_name, avatar_url, bio) ON public.users TO authenticated;
@@ -134,7 +123,30 @@ BEGIN
   RETURN json_build_object('success', true, 'coins', v_coins);
 END; $$;
 
--- 8. Bảng forum_posts (nếu chưa có)
+-- 8. Bảng otp_rentals — lưu lịch sử thuê số của từng user
+CREATE TABLE IF NOT EXISTS public.otp_rentals (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+  request_id   TEXT NOT NULL,
+  phone_number TEXT NOT NULL,
+  service_id   INT,
+  service_name TEXT,
+  country      TEXT,
+  coin_cost    INT DEFAULT 0,
+  status       SMALLINT DEFAULT 0, -- 0=chờ, 1=thành công, 2=hết hạn
+  code         TEXT,
+  sms_content  TEXT,
+  created_at   TIMESTAMPTZ DEFAULT now() NOT NULL,
+  completed_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.otp_rentals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users view own rentals"   ON public.otp_rentals FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own rentals" ON public.otp_rentals FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users update own rentals" ON public.otp_rentals FOR UPDATE USING (auth.uid() = user_id);
+
+-- 9. Bảng forum_posts (nếu chưa có)
 CREATE TABLE IF NOT EXISTS public.forum_posts (
   id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   author_id    UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
@@ -225,7 +237,114 @@ BEGIN
 END; $$;
 
 -- Cho phép anon role gọi hàm này (bảo mật ở tầng ứng dụng qua SEPAY_WEBHOOK_SECRET)
-GRANT EXECUTE ON FUNCTION complete_coin_transaction(TEXT, BIGINT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.deduct_coins(UUID, BIGINT) TO authenticated;
+-- add_coins và complete_coin_transaction KHÔNG expose ra client — chỉ gọi qua service_role
+
+-- ================================================================
+-- SECURITY MIGRATION — Chạy trong Supabase Dashboard → SQL Editor
+-- ================================================================
+
+-- [CRITICAL] Thu hồi quyền gọi trực tiếp từ client
+REVOKE EXECUTE ON FUNCTION public.add_coins(UUID, BIGINT) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.add_coins(UUID, BIGINT) FROM anon;
+REVOKE EXECUTE ON FUNCTION complete_coin_transaction(TEXT, BIGINT) FROM anon;
+REVOKE EXECUTE ON FUNCTION complete_coin_transaction(TEXT, BIGINT) FROM authenticated;
+
+-- [CRITICAL] Sửa complete_coin_transaction — atomic + dùng amount từ DB
+CREATE OR REPLACE FUNCTION complete_coin_transaction(p_reference TEXT, p_transfer_amount BIGINT)
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_user_id UUID;
+  v_amount  BIGINT;
+  v_coins   BIGINT;
+BEGIN
+  IF p_transfer_amount <= 0 THEN
+    RETURN json_build_object('success', false, 'message', 'Số tiền không hợp lệ');
+  END IF;
+
+  -- Atomic: chỉ xử lý nếu status='pending' và chưa hết hạn
+  UPDATE public.coin_transactions
+  SET status = 'completed', completed_at = now()
+  WHERE reference = p_reference
+    AND status = 'pending'
+    AND expires_at > now()
+  RETURNING user_id, amount INTO v_user_id, v_amount;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'message', 'Giao dịch không tồn tại, đã xử lý, hoặc hết hạn');
+  END IF;
+
+  -- Cộng theo amount đã lưu trong DB — không tin p_transfer_amount từ caller
+  UPDATE public.users
+  SET coins = coins + v_amount
+  WHERE id = v_user_id
+  RETURNING coins INTO v_coins;
+
+  RETURN json_build_object('success', true, 'user_id', v_user_id, 'coins', v_coins, 'coins_added', v_amount);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- [CRITICAL] Thêm validation p_amount > 0 và kiểm tra caller vào deduct_coins
+CREATE OR REPLACE FUNCTION public.deduct_coins(p_user_id UUID, p_amount BIGINT)
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_coins BIGINT;
+BEGIN
+  IF p_amount <= 0 THEN
+    RETURN json_build_object('success', false, 'message', 'Số coin không hợp lệ');
+  END IF;
+  -- Chỉ cho phép user trừ coin của chính mình
+  IF auth.uid() IS DISTINCT FROM p_user_id THEN
+    RETURN json_build_object('success', false, 'message', 'Không có quyền');
+  END IF;
+
+  UPDATE public.users
+  SET coins = coins - p_amount
+  WHERE id = p_user_id AND coins >= p_amount
+  RETURNING coins INTO v_coins;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'message', 'Không đủ coin');
+  END IF;
+  RETURN json_build_object('success', true, 'coins', v_coins);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- [CRITICAL] Thêm validation vào add_coins + block gọi từ client
+CREATE OR REPLACE FUNCTION public.add_coins(p_user_id UUID, p_amount BIGINT)
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE v_coins BIGINT;
+BEGIN
+  IF p_amount <= 0 THEN
+    RETURN json_build_object('success', false, 'message', 'Số coin không hợp lệ');
+  END IF;
+  -- Hàm này chỉ được gọi từ service_role (webhook, server refund)
+  -- auth.uid() IS NOT NULL nghĩa là đang có user session → reject
+  IF auth.uid() IS NOT NULL THEN
+    RETURN json_build_object('success', false, 'message', 'Unauthorized');
+  END IF;
+
+  UPDATE public.users
+  SET coins = coins + p_amount
+  WHERE id = p_user_id
+  RETURNING coins INTO v_coins;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'message', 'Không tìm thấy user');
+  END IF;
+  RETURN json_build_object('success', true, 'coins', v_coins);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- [HIGH] Thêm constraint chống coin âm
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS users_coins_non_negative CHECK (coins >= 0);
+
+-- [HIGH] Thêm cột refunded vào otp_rentals (nếu chưa có)
+ALTER TABLE public.otp_rentals ADD COLUMN IF NOT EXISTS refunded BOOLEAN NOT NULL DEFAULT false;
+
+-- [MEDIUM] Index tối ưu query
+CREATE INDEX IF NOT EXISTS idx_otp_rentals_user_status ON public.otp_rentals(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_otp_rentals_user_phone ON public.otp_rentals(user_id, phone_number);
+CREATE INDEX IF NOT EXISTS idx_coin_transactions_reference ON public.coin_transactions(reference, status);
 
 -- ================================================================
 -- Kiểm tra kết quả

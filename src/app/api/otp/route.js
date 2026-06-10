@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
 
 const VIOTP_TOKEN = process.env.VIOTP_API_TOKEN;
 
 export async function GET(request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ success: false, message: 'Chưa đăng nhập' }, { status: 401 });
+
   if (!VIOTP_TOKEN) {
     return NextResponse.json({ success: false, message: 'Server chưa được cấu hình API Token' }, { status: 500 });
   }

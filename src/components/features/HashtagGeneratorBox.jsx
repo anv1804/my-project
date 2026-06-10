@@ -92,13 +92,13 @@ function HashtagGeneratorBoxContent() {
   const isCopiedAll = copiedText === hashtags && hashtags !== "";
 
   return (
-    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 sm:p-8 shadow-xl flex flex-col gap-6">
+    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-xl flex flex-col gap-5 sm:gap-6">
       
       <div>
         <label className="block text-sm font-medium text-[var(--color-binance-gray)] mb-2">
           Nhập Từ khóa (Ví dụ: Ốp lưng iPhone):
         </label>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Input 
             placeholder="Nhập từ khóa sản phẩm / nội dung..." 
             className="flex-1"
@@ -106,7 +106,7 @@ function HashtagGeneratorBoxContent() {
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && generate(keyword)}
           />
-          <Button variant="primary" onClick={() => generate(keyword)} disabled={isGenerating || !keyword.trim()}>
+          <Button variant="primary" className="sm:w-auto w-full" onClick={() => generate(keyword)} disabled={isGenerating || !keyword.trim()}>
             {isGenerating ? "Đang xử lý..." : "Tạo Hashtag"}
           </Button>
         </div>

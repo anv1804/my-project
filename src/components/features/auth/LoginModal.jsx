@@ -1,8 +1,9 @@
 "use client";
 
-import { X, Mail, Eye, EyeOff, LogOut, User } from "lucide-react";
+import { X, Mail, Eye, EyeOff, LogOut, User, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -19,6 +20,7 @@ const GoogleIcon = ({ size = 20 }) => (
 export default function LoginModal() {
   const { isLoginModalOpen, closeLoginModal, loginModalMessage, user, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut } = useAuthStore();
   const [tab, setTab] = useState("login"); // 'login' | 'register'
+  const [copiedId, setCopiedId] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -38,7 +40,7 @@ export default function LoginModal() {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeLoginModal} />
-        <div className="relative w-full max-w-sm bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl shadow-2xl p-8 m-4">
+        <div className="relative w-[calc(100vw-2rem)] max-w-sm bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl shadow-2xl p-4 sm:p-8 mx-4">
           <button onClick={closeLoginModal} className="absolute top-4 right-4 p-2 text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] rounded-full transition-colors">
             <X size={20} />
           </button>
@@ -53,10 +55,27 @@ export default function LoginModal() {
               {user.user_metadata?.full_name || user.user_metadata?.display_name || "Người dùng"}
             </h2>
             <p className="text-sm text-[var(--color-binance-gray)] mt-1">{user.email}</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(user.id);
+                setCopiedId(true);
+                setTimeout(() => setCopiedId(false), 2000);
+              }}
+              className="mt-3 flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-md bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] hover:border-[var(--color-binance-yellow)]/40 transition-colors group"
+              title="Copy User ID"
+            >
+              <span className="font-mono text-[11px] text-[var(--color-binance-gray)] group-hover:text-[var(--color-binance-light)] transition-colors">
+                ID: {user.id.slice(0, 8)}...{user.id.slice(-4)}
+              </span>
+              {copiedId
+                ? <Check size={12} className="text-green-400 shrink-0" />
+                : <Copy size={12} className="text-[var(--color-binance-gray)] group-hover:text-[var(--color-binance-yellow)] shrink-0 transition-colors" />
+              }
+            </button>
             <Button
               variant="outline"
               className="mt-6 w-full flex items-center justify-center gap-2 text-red-400 border-red-400/30 hover:border-red-400"
-              onClick={async () => { await signOut(); closeLoginModal(); toast.success("Đã đăng xuất!"); }}
+              onClick={async () => { await signOut(); closeLoginModal(); }}
             >
               <LogOut size={16} /> Đăng xuất
             </Button>
@@ -80,7 +99,6 @@ export default function LoginModal() {
     try {
       if (tab === "login") {
         await signInWithEmail(email, password);
-        toast.success("Đăng nhập thành công!");
         closeLoginModal();
       } else {
         await signUpWithEmail(email, password, displayName);
@@ -98,7 +116,7 @@ export default function LoginModal() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={closeLoginModal} />
 
-      <div className="relative w-full max-w-md bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl shadow-2xl p-8 m-4 animate-in zoom-in-95 fade-in duration-300">
+      <div className="relative w-[calc(100vw-2rem)] max-w-md bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl shadow-2xl p-4 sm:p-8 mx-4 animate-in zoom-in-95 fade-in duration-300">
         <button onClick={closeLoginModal} className="absolute top-4 right-4 p-2 text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 rounded-full transition-colors">
           <X size={20} />
         </button>
@@ -144,22 +162,22 @@ export default function LoginModal() {
         {/* Form */}
         <form onSubmit={handleEmailSubmit} className="flex flex-col gap-3">
           {tab === "register" && (
-            <input
+            <Input
               type="text" placeholder="Tên hiển thị" value={displayName}
               onChange={e => setDisplayName(e.target.value)} required
-              className="w-full bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-binance-light)] outline-none focus:border-[var(--color-binance-yellow)] transition-colors placeholder-[var(--color-binance-gray)]"
+              className="w-full bg-[var(--color-binance-dark)] px-4 py-3 rounded-lg text-sm"
             />
           )}
-          <input
+          <Input
             type="email" placeholder="Email" value={email}
             onChange={e => setEmail(e.target.value)} required
-            className="w-full bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-binance-light)] outline-none focus:border-[var(--color-binance-yellow)] transition-colors placeholder-[var(--color-binance-gray)]"
+            className="w-full bg-[var(--color-binance-dark)] px-4 py-3 rounded-lg text-sm"
           />
           <div className="relative">
-            <input
+            <Input
               type={showPass ? "text" : "password"} placeholder="Mật khẩu" value={password}
               onChange={e => setPassword(e.target.value)} required minLength={6}
-              className="w-full bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg px-4 py-3 pr-12 text-sm text-[var(--color-binance-light)] outline-none focus:border-[var(--color-binance-yellow)] transition-colors placeholder-[var(--color-binance-gray)]"
+              className="w-full bg-[var(--color-binance-dark)] px-4 py-3 pr-12 rounded-lg text-sm"
             />
             <button type="button" onClick={() => setShowPass(!showPass)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] transition-colors">

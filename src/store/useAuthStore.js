@@ -2,29 +2,49 @@ import { create } from 'zustand';
 import toast from 'react-hot-toast';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
+const PROFILE_KEY = 'cached_profile';
+
+const loadCachedProfile = () => {
+  if (typeof window === 'undefined') return null;
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY)); } catch { return null; }
+};
+
+const saveProfileCache = (profile) => {
+  if (typeof window === 'undefined') return;
+  if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  else localStorage.removeItem(PROFILE_KEY);
+};
+
 export const useAuthStore = create((set, get) => ({
   user: null,
-  profile: null,
+  profile: loadCachedProfile(), // load ngay từ cache, không đợi DB
   session: null,
   isLoading: true,
   isLoginModalOpen: false,
   loginModalMessage: 'Vui lòng đăng nhập để tiếp tục',
 
-  // Khởi tạo — gọi 1 lần khi app mount
-  init: async () => {
+  init: () => {
     if (!isSupabaseConfigured) {
       set({ isLoading: false });
       return;
     }
-    const { data: { session } } = await supabase.auth.getSession();
-    set({ session, user: session?.user ?? null, isLoading: false });
-    if (session?.user) {
-      get().fetchProfile(session.user.id);
-      get().subscribeProfile(session.user.id);
-    }
 
+    // INITIAL_SESSION fires synchronously on subscription — không cần getSession()
     supabase.auth.onAuthStateChange((event, session) => {
       set({ session, user: session?.user ?? null });
+
+      if (event === 'INITIAL_SESSION') {
+        set({ isLoading: false });
+        if (session?.user) {
+          get().fetchProfile(session.user.id);
+          get().subscribeProfile(session.user.id);
+        } else {
+          saveProfileCache(null);
+          set({ profile: null });
+        }
+        return;
+      }
+
       if (session?.user) {
         get().fetchProfile(session.user.id);
         if (event === 'SIGNED_IN') {
@@ -36,6 +56,7 @@ export const useAuthStore = create((set, get) => ({
           toast.success(`Chào mừng ${name} đã đăng nhập!`);
         }
       } else {
+        saveProfileCache(null);
         set({ profile: null });
         get().unsubscribeProfile();
         if (event === 'SIGNED_OUT') toast.success('Đã đăng xuất thành công!');
@@ -44,7 +65,6 @@ export const useAuthStore = create((set, get) => ({
   },
 
   subscribeProfile: (userId) => {
-    // Unsubscribe cũ nếu có
     get().unsubscribeProfile();
     const channel = supabase
       .channel(`profile-${userId}`)
@@ -55,6 +75,7 @@ export const useAuthStore = create((set, get) => ({
         filter: `id=eq.${userId}`,
       }, (payload) => {
         set({ profile: payload.new });
+        saveProfileCache(payload.new);
       })
       .subscribe();
     set({ _profileChannel: channel });
@@ -66,16 +87,17 @@ export const useAuthStore = create((set, get) => ({
   },
 
   fetchProfile: async (userId) => {
-    // Đảm bảo user có record trong public.users (quan trọng với Google OAuth)
-    const { error: rpcError } = await supabase.rpc('ensure_user_profile');
-    if (rpcError) console.warn('[fetchProfile] ensure_user_profile error:', rpcError);
-    const { data, error } = await supabase
+    // ensure_user_profile tạo record cho Google OAuth user nếu chưa có
+    await supabase.rpc('ensure_user_profile');
+    const { data } = await supabase
       .from('users')
       .select('id, email, display_name, avatar_url, role, bio, coins, created_at, updated_at')
       .eq('id', userId)
       .single();
-    console.log('[fetchProfile] data:', data, 'error:', error);
-    if (data) set({ profile: data });
+    if (data) {
+      set({ profile: data });
+      saveProfileCache(data);
+    }
   },
 
   signInWithGoogle: async () => {
@@ -104,6 +126,7 @@ export const useAuthStore = create((set, get) => ({
 
   signOut: async () => {
     await supabase.auth.signOut();
+    saveProfileCache(null);
     set({ user: null, profile: null, session: null });
   },
 

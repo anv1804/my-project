@@ -10,9 +10,9 @@ export const metadata = {
 export default function TiktokTtsPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full animate-in fade-in duration-500">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-binance-light)] mb-2 flex items-center gap-3">
-          <Mic className="text-[var(--color-binance-yellow)]" size={28} />
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-xl sm:text-3xl font-bold text-[var(--color-binance-light)] mb-2 flex items-center gap-2 sm:gap-3">
+          <Mic className="text-[var(--color-binance-yellow)] shrink-0" size={22} />
           Chuyển Văn Bản Thành Giọng Nói (TTS)
         </h1>
         <p className="text-[var(--color-binance-gray)] text-sm sm:text-base">
@@ -24,10 +24,10 @@ export default function TiktokTtsPage() {
         <TtsBox />
       </div>
 
-      <div className="bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-xl p-6 sm:p-8">
-        <h2 className="text-xl font-bold text-[var(--color-binance-light)] mb-6">Tại sao nên dùng giọng AI cho TikTok?</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-xl p-4 sm:p-8">
+        <h2 className="text-base sm:text-xl font-bold text-[var(--color-binance-light)] mb-4 sm:mb-6">Tại sao nên dùng giọng AI cho TikTok?</h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-[var(--color-binance-dark)] p-5 rounded-lg border border-[var(--color-binance-border)]">
             <div className="w-10 h-10 rounded-full bg-[var(--color-binance-yellow)]/10 flex items-center justify-center text-[var(--color-binance-yellow)] mb-4">
               <Zap size={20} />

@@ -1,3 +1,61 @@
+// ─── Admin client (service_role — bypasses RLS) ──────────────────────────────
+
+let _adminClient = null;
+export function createAdminClient() {
+  if (!_adminClient) {
+    const { createClient } = require('@supabase/supabase-js');
+    _adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+  }
+  return _adminClient;
+}
+
+// ─── Logger ───────────────────────────────────────────────────────────────────
+
+/**
+ * Lấy IP thực của request (hỗ trợ proxy/Vercel)
+ */
+export function getClientIp(request) {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
+/**
+ * Ghi log hành động người dùng vào bảng user_action_logs
+ * actions: 'coin_deduct' | 'coin_refund' | 'coin_topup' | 'otp_rent' | 'otp_received' | 'otp_expired'
+ */
+export async function logAction({
+  userId, action, status = 'success',
+  coinsBefore, coinsAfter, coinsDelta,
+  refId, metadata, ip, ua,
+}) {
+  try {
+    const admin = createAdminClient();
+    await admin.from('user_action_logs').insert({
+      user_id:      userId || null,
+      action,
+      status,
+      coins_before: coinsBefore ?? null,
+      coins_after:  coinsAfter ?? null,
+      coins_delta:  coinsDelta ?? null,
+      ref_id:       refId || null,
+      metadata:     metadata || null,
+      ip:           ip || null,
+      ua:           ua ? ua.slice(0, 300) : null,
+    });
+  } catch (err) {
+    console.error('[logAction] failed:', err.message);
+  }
+}
+
+// ─── Rate limit & Cache ───────────────────────────────────────────────────────
+
 // Lõi In-memory xử lý Caching và Rate Limit
 // Lưu ý: Trong môi trường Production (như Vercel Serverless), memory này sẽ bị reset khi server sleep.
 // Giải pháp thực tế dài hạn là dùng Upstash Redis.

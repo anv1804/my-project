@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, startTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import OtpHistoryBox from "./OtpHistoryBox";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import toast from "react-hot-toast";
@@ -12,6 +14,8 @@ import {
 } from "lucide-react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useAuthStore } from "@/store/useAuthStore";
+import { setStoreCoins, getCoins } from "@/utils/coinService";
+import { createClient } from "@/utils/supabase/client";
 
 // Giá hiển thị = giá ViOTP × 2, đơn vị coin
 const formatCoin = (num) => {
@@ -40,7 +44,9 @@ const BrandIcon = ({ name }) => {
     case "tiktok": return (
       <svg width="15" height="15" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#010101"/><path d="M34 12c-2.5 0-4.8-1.5-5.8-3.8V28a8 8 0 1 1-8-8v4.4a3.6 3.6 0 1 0 3.6 3.6V6h4c.2 2.8 2 5.2 4.5 6.5V16c-1.6 0-3.2-.4-4.5-1.2" fill="white"/></svg>
     );
-    default: return null;
+    default: return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-binance-gray)]"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    );
   }
 };
 
@@ -56,6 +62,7 @@ const NETWORK_CONFIG = {
 
 export default function OtpRentBox() {
   const { user, profile, openLoginModal } = useAuthStore();
+  const searchParams = useSearchParams();
 
   const [isConnected, setIsConnected] = useState(false);
 
@@ -73,26 +80,106 @@ export default function OtpRentBox() {
   const [exceptPrefix, setExceptPrefix] = useState("");
   const [customNumber, setCustomNumber] = useState("");
 
-  // Lists & state — lazy initializers to avoid setState inside effects
-  const [activeRentals, setActiveRentals] = useState(() => {
-    if (typeof window === "undefined") return [];
+  const [mounted, setMounted] = useState(false);
+  const [activeRentals, setActiveRentals] = useState([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [now, setNow] = useState(0);
+
+  // Parse query parameters for re-renting
+  useEffect(() => {
+    if (!searchParams) return;
+    const rePhone = searchParams.get("re_phone_number");
+    const svcId = searchParams.get("service_id");
+    if (rePhone) {
+      setCustomNumber(rePhone);
+      setShowAdvanced(true);
+    }
+    if (svcId && services.length) {
+      const matched = services.find(s => String(s.id) === String(svcId));
+      if (matched) setSelectedService(matched);
+    }
+  }, [searchParams, services]);
+
+  // Load localStorage + đồng bộ pending rentals từ DB sau khi hydration
+  useEffect(() => {
+    const supabase = createClient();
+    const { user } = useAuthStore.getState();
+
+    // Đọc localStorage trước
+    let localRentals = [];
     try {
       const saved = localStorage.getItem("otp_active_rentals");
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-  const [historyRentals, setHistoryRentals] = useState([]);
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const saved = localStorage.getItem("otp_sound_enabled");
-    return saved === null ? true : saved === "true";
-  });
-  const [now, setNow] = useState(0);
+      if (saved) localRentals = JSON.parse(saved);
+    } catch {}
+
+    // Dùng String() để tránh type mismatch number vs string
+    const localIds = new Set(localRentals.map(r => String(r.request_id)));
+
+    // Dedup helper — luôn dùng khi merge để tránh duplicate key
+    const dedup = (list) => {
+      const seen = new Set();
+      return list.filter(r => {
+        const key = String(r.request_id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    };
+
+    // Fetch pending rentals từ DB, merge những cái chưa có trong localStorage
+    const syncFromDb = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from("otp_rentals")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("status", 0)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (data?.length) {
+          const fromDb = data
+            .filter(r => !localIds.has(String(r.request_id)))
+            .map(r => ({
+              request_id: r.request_id,
+              phone_number: r.phone_number,
+              countryISO: r.country?.toUpperCase() || "VN",
+              countryCode: r.country === "vn" ? "84" : "856",
+              service_name: r.service_name,
+              service_id: r.service_id,
+              price: r.coin_cost / 2,
+              coinCost: r.coin_cost,
+              status: 0,
+              code: "",
+              smsContent: "",
+              isSound: false,
+              createdAt: r.created_at,
+            }));
+          if (fromDb.length) {
+            startTransition(() => setActiveRentals(prev => dedup([...fromDb, ...prev])));
+          }
+        }
+      } catch {}
+    };
+
+    startTransition(() => {
+      if (localRentals.length) setActiveRentals(localRentals);
+      try {
+        const s = localStorage.getItem("otp_sound_enabled");
+        if (s !== null) setSoundEnabled(s === "true");
+      } catch {}
+      setMounted(true);
+    });
+
+    syncFromDb();
+  }, []);
+
+  const rentInFlightRef = useRef(false);
 
   // Loading flags
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingRent, setLoadingRent] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [activeTab, setActiveTab] = useState("rent");
   const [copiedText, copy] = useCopyToClipboard();
@@ -189,23 +276,17 @@ export default function OtpRentBox() {
     } catch {}
   };
 
-  const refundCoins = async (amount) => {
-    try {
-      const res = await fetch("/api/coins", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "refund", amount }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        useAuthStore.setState(state => ({ profile: { ...state.profile, coins: data.coins } }));
-      }
-    } catch {}
-  };
 
   // Polling for waiting rentals (every 4s)
   useEffect(() => {
-    const waiting = activeRentals.filter(r => r.status === 0);
+    // Dedup trước khi poll — tránh hoàn coin nhiều lần do duplicate entry
+    const seen = new Set();
+    const waiting = activeRentals.filter(r => {
+      const key = String(r.request_id);
+      if (r.status !== 0 || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     if (waiting.length === 0 || !isConnected) return;
 
     const id = setInterval(async () => {
@@ -220,7 +301,7 @@ export default function OtpRentBox() {
           if (result.success && result.data) {
             const newStatus = result.data.Status;
             if (newStatus !== 0) {
-              const idx = updated.findIndex(r => r.request_id === rental.request_id);
+              const idx = updated.findIndex(r => String(r.request_id) === String(rental.request_id));
               if (idx !== -1) {
                 updated[idx] = {
                   ...updated[idx],
@@ -231,16 +312,29 @@ export default function OtpRentBox() {
                   price: result.data.Price || updated[idx].price,
                 };
                 changed = true;
+                // Cập nhật DB + nhận kết quả hoàn coin từ server
+                fetch('/api/otp-rental', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'update',
+                    request_id: rental.request_id,
+                    status: newStatus,
+                    code: result.data.Code || '',
+                    sms_content: result.data.SmsContent || '',
+                  }),
+                }).then(r => r.json()).then(res => {
+                  if (res.coinsNow != null) setStoreCoins(res.coinsNow);
+                  if (res.coinRefunded > 0) {
+                    toast.success(`Đã hoàn ${new Intl.NumberFormat("vi-VN").format(res.coinRefunded)} coin cho số ${rental.phone_number}`);
+                  }
+                }).catch(() => {});
                 if (newStatus === 1) {
                   toast.success(`Nhận OTP thành công cho số ${rental.phone_number}!`);
                   if (soundEnabled) playAlertSound();
                 } else if (newStatus === 2) {
+                  updated[idx].expiredAt = Date.now();
                   toast.error(`Yêu cầu thuê số ${rental.phone_number} đã hết hạn!`);
-                  if (!result.data.Code && rental.coinCost) {
-                    refundCoins(rental.coinCost).then(() => {
-                      toast.success(`Đã hoàn ${new Intl.NumberFormat("vi-VN").format(rental.coinCost)} coin cho số ${rental.phone_number}`);
-                    });
-                  }
                 }
               }
             }
@@ -254,52 +348,55 @@ export default function OtpRentBox() {
     return () => clearInterval(id);
   }, [activeRentals, isConnected, soundEnabled]);
 
+  // Tự động xóa SIM hết hạn sau 1 phút
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setActiveRentals(prev => {
+        const filtered = prev.filter(r => !(r.status === 2 && r.expiredAt && now - r.expiredAt >= 60000));
+        return filtered.length === prev.length ? prev : filtered;
+      });
+    }, 10000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleRent = async () => {
     if (!isConnected) { toast.error("Hệ thống chưa sẵn sàng, vui lòng đợi..."); return; }
     if (!selectedService) { toast.error("Vui lòng chọn một dịch vụ cần thuê!"); return; }
+    if (!user) { openLoginModal("Vui lòng đăng nhập để thuê số OTP!"); return; }
 
-    if (!user) {
-      openLoginModal("Vui lòng đăng nhập để thuê số OTP!");
+    // Kiểm tra nhanh client-side (UX) — server sẽ validate lại
+    const estimatedCost = Math.round(selectedService.price * 2);
+    if (getCoins() < estimatedCost) {
+      toast.error(`Không đủ coin! Cần khoảng ${new Intl.NumberFormat("vi-VN").format(estimatedCost)} coin.`);
       return;
     }
 
-    const coinCost = Math.round(selectedService.price * 2);
-    const currentCoins = profile?.coins ?? 0;
-    if (currentCoins < coinCost) {
-      toast.error(`Không đủ coin! Cần ${new Intl.NumberFormat("vi-VN").format(coinCost)} coin, bạn đang có ${new Intl.NumberFormat("vi-VN").format(currentCoins)} coin.`);
-      return;
-    }
-
+    // Chống double-click
+    if (rentInFlightRef.current) return;
+    rentInFlightRef.current = true;
     setLoadingRent(true);
 
-    // Deduct coins atomically before calling ViOTP
-    const deductRes = await fetch("/api/coins", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "deduct", amount: coinCost }),
-    });
-    const deductData = await deductRes.json();
-
-    if (!deductData.success) {
-      toast.error(deductData.message || "Không thể trừ coin. Vui lòng thử lại!");
-      setLoadingRent(false);
-      return;
-    }
-    useAuthStore.setState(state => ({ profile: { ...state.profile, coins: deductData.coins } }));
-
-    let path = `request/getv2?serviceId=${selectedService.id}&country=${country}`;
-    if (selectedNetworks.length > 0) path += `&network=${encodeURIComponent(selectedNetworks.join("|"))}`;
-    if (prefix.trim()) path += `&prefix=${encodeURIComponent(prefix.trim())}`;
-    if (exceptPrefix.trim()) path += `&exceptPrefix=${encodeURIComponent(exceptPrefix.trim())}`;
-    if (customNumber.trim()) path += `&number=${encodeURIComponent(customNumber.trim())}`;
-
     try {
-      const res = await fetch(`/api/otp?path=${path}`);
-      if (!res.ok) throw new Error("Lỗi kết nối máy chủ");
+      const res = await fetch('/api/otp-rental', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rent',
+          service_id: selectedService.id,
+          service_name: selectedService.name,
+          country,
+          networks: selectedNetworks,
+          prefix: prefix.trim() || undefined,
+          except_prefix: exceptPrefix.trim() || undefined,
+          custom_number: customNumber.trim() || undefined,
+        }),
+      });
       const data = await res.json();
 
-      if (data.status_code === 200 && data.success) {
+      if (data.success) {
         const item = data.data;
+        if (data.coinsNow != null) setStoreCoins(data.coinsNow);
         setActiveRentals(prev => [{
           request_id: item.request_id,
           phone_number: item.phone_number,
@@ -309,28 +406,27 @@ export default function OtpRentBox() {
           service_name: selectedService.name,
           service_id: selectedService.id,
           price: selectedService.price,
-          coinCost,
+          coinCost: data.coinCost ?? estimatedCost,
           status: 0,
           code: "",
           smsContent: "",
           isSound: false,
           createdAt: new Date().toISOString(),
         }, ...prev]);
-        toast.success(`Yêu cầu thuê số thành công: ${item.phone_number}`);
+        const msg = data.rerentWindow
+          ? `Thuê thành công: ${item.phone_number} (còn ${data.rerentWindow} phút để thuê lại)`
+          : `Yêu cầu thuê số thành công: ${item.phone_number}`;
+        toast.success(msg);
         if (customNumber) setCustomNumber("");
       } else {
-        await refundCoins(coinCost);
-        let msg = data.message || "Không thể thuê số.";
-        if (data.status_code === -2) msg = "Hệ thống OTP không đủ số dư. Vui lòng liên hệ admin!";
-        if (data.status_code === -3) msg = "Kho số dịch vụ này đang tạm hết.";
-        if (data.status_code === -4) msg = "Ứng dụng này không tồn tại hoặc tạm dừng.";
-        if (data.status_code === 429) msg = "Vượt quá giới hạn số chờ tin nhắn tối đa.";
-        toast.error(msg);
+        // coinsNow được trả về khi server đã refund
+        if (data.coinsNow != null) setStoreCoins(data.coinsNow);
+        toast.error(data.message || "Không thể thuê số.");
       }
     } catch (err) {
-      await refundCoins(coinCost);
-      toast.error("Lỗi khi gửi yêu cầu thuê số: " + err.message);
+      toast.error("Lỗi kết nối: " + err.message);
     } finally {
+      rentInFlightRef.current = false;
       setLoadingRent(false);
     }
   };
@@ -339,8 +435,7 @@ export default function OtpRentBox() {
     setSelectedNetworks(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
 
   const handleRemoveRental = (requestId) => {
-    setActiveRentals(prev => prev.filter(r => r.request_id !== requestId));
-    toast.success("Đã xóa phiên thuê khỏi danh sách hiển thị");
+    setActiveRentals(prev => prev.filter(r => String(r.request_id) !== String(requestId)));
   };
 
   const handleRentAgain = (rental) => {
@@ -348,33 +443,8 @@ export default function OtpRentBox() {
     setCustomNumber(rental.phone_number);
     const matched = services.find(s => s.id === rental.service_id);
     setSelectedService(matched || { id: rental.service_id, name: rental.service_name, price: rental.price });
-    toast.success(`Đã điền số ${rental.phone_number} vào ô thuê lại`);
+    setActiveTab("rent");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const fetchHistory = async () => {
-    if (!isConnected) { toast.error("Hệ thống chưa sẵn sàng!"); return; }
-    setLoadingHistory(true);
-    const today = new Date().toISOString().split("T")[0];
-    const past = new Date();
-    past.setDate(past.getDate() - 7);
-    const fromDate = past.toISOString().split("T")[0];
-    const path = `session/historyv2?limit=50&fromDate=${fromDate}&toDate=${today}`;
-    try {
-      const res = await fetch(`/api/otp?path=${encodeURIComponent(path)}`);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      if (data.status_code === 200 && data.success) {
-        setHistoryRentals(data.data || []);
-        toast.success("Tải lịch sử giao dịch thành công!");
-      } else {
-        toast.error(data.message || "Không thể tải lịch sử thuê số");
-      }
-    } catch {
-      toast.error("Lỗi khi tải lịch sử.");
-    } finally {
-      setLoadingHistory(false);
-    }
   };
 
   const filteredServices = services.filter(s =>
@@ -385,13 +455,13 @@ export default function OtpRentBox() {
     <div className="flex flex-col gap-6 w-full text-[var(--color-binance-light)]">
 
       {/* SECTION 1: STATUS + GUIDE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
         {/* System Status Card */}
-        <div className="lg:col-span-4 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 shadow-lg flex flex-col gap-4">
+        <div className="md:col-span-4 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg flex flex-col gap-4">
           <div className="flex items-center gap-2 border-b border-[var(--color-binance-border)] pb-3">
-            <Wifi size={18} className="text-[var(--color-binance-yellow)]" />
-            <h2 className="text-lg font-semibold">Trạng thái hệ thống</h2>
+            <Wifi size={16} className="text-[var(--color-binance-yellow)]" />
+            <h2 className="text-sm font-semibold">Trạng thái hệ thống</h2>
           </div>
 
           <div className="bg-[var(--color-binance-darker)] rounded-md p-4 border border-[var(--color-binance-border)] flex items-center justify-between">
@@ -414,10 +484,10 @@ export default function OtpRentBox() {
         </div>
 
         {/* Instructions Card */}
-        <div className="lg:col-span-8 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 shadow-lg">
+        <div className="md:col-span-8 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg">
           <div className="flex items-center gap-2 mb-4 border-b border-[var(--color-binance-border)] pb-3">
-            <FileText size={18} className="text-[var(--color-binance-yellow)]" />
-            <h2 className="text-lg font-semibold">Hướng dẫn sử dụng</h2>
+            <FileText size={16} className="text-[var(--color-binance-yellow)]" />
+            <h2 className="text-sm font-semibold">Hướng dẫn sử dụng</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-[var(--color-binance-gray)]">
@@ -451,7 +521,7 @@ export default function OtpRentBox() {
           <Phone size={16} /> Thuê số trực tuyến
         </button>
         <button
-          onClick={() => { setActiveTab("history"); fetchHistory(); }}
+          onClick={() => setActiveTab("history")}
           className={`px-5 py-3 text-sm font-medium border-b-2 transition-all cursor-pointer flex items-center gap-2 ${activeTab === "history" ? "border-[var(--color-binance-yellow)] text-[var(--color-binance-yellow)]" : "border-transparent text-[var(--color-binance-gray)] hover:text-white"}`}
         >
           <History size={16} /> Lịch sử thuê
@@ -460,10 +530,10 @@ export default function OtpRentBox() {
 
       {/* SECTION 3: RENT FORM */}
       {activeTab === "rent" ? (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           {/* Order Form */}
-          <div className="xl:col-span-7 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 shadow-lg flex flex-col gap-5">
+          <div className="lg:col-span-7 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg flex flex-col gap-5">
 
             {/* Country */}
             <div>
@@ -635,14 +705,14 @@ export default function OtpRentBox() {
           </div>
 
           {/* Sound panel */}
-          <div className="xl:col-span-5 flex flex-col gap-6">
-            <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 shadow-lg">
+          <div className="lg:col-span-5 flex flex-col gap-6">
+            <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4 border-b border-[var(--color-binance-border)] pb-3">
                 <div className="flex items-center gap-2">
-                  <Wifi size={18} className="text-[var(--color-binance-yellow)]" />
-                  <h3 className="font-semibold">Quét Tín Hiệu Tin Nhắn</h3>
+                  <Wifi size={16} className="text-[var(--color-binance-yellow)]" />
+                  <h3 className="text-sm font-semibold">Quét Tín Hiệu Tin Nhắn</h3>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
@@ -692,106 +762,31 @@ export default function OtpRentBox() {
         </div>
       ) : (
         /* SECTION 4: HISTORY */
-        <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 shadow-lg">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-              <h2 className="text-lg font-semibold flex items-center gap-2 text-[var(--color-binance-yellow)]">
-                <History size={18} /> Lịch Sử Thuê Số (7 ngày gần nhất)
-              </h2>
-              <p className="text-[var(--color-binance-gray)] text-xs mt-1">Hiển thị tối đa 50 yêu cầu thuê số trong tuần vừa qua.</p>
-            </div>
-            <Button onClick={fetchHistory} disabled={loadingHistory} className="flex gap-2 text-xs">
-              <RefreshCw size={14} className={loadingHistory ? "animate-spin" : ""} />
-              Tải lại lịch sử
-            </Button>
-          </div>
-
-          <div className="overflow-x-auto">
-            {loadingHistory ? (
-              <div className="p-16 text-center text-[var(--color-binance-gray)] text-sm flex items-center justify-center gap-2">
-                <RefreshCw size={20} className="animate-spin text-[var(--color-binance-yellow)]" />
-                Đang truy vấn lịch sử thuê số từ hệ thống...
-              </div>
-            ) : historyRentals.length > 0 ? (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-[var(--color-binance-border)] text-[var(--color-binance-gray)] uppercase font-semibold">
-                    <th className="py-3 px-4">Mã GD</th>
-                    <th className="py-3 px-4">Dịch Vụ</th>
-                    <th className="py-3 px-4">Số Điện Thoại</th>
-                    <th className="py-3 px-4">OTP</th>
-                    <th className="py-3 px-4">Nội Dung SMS</th>
-                    <th className="py-3 px-4">Giá (Coin)</th>
-                    <th className="py-3 px-4">Trạng Thái</th>
-                    <th className="py-3 px-4">Thời Gian</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-binance-border)]/45">
-                  {historyRentals.map((hist) => {
-                    const statusText = hist.Status === 1 ? "Hoàn thành" : hist.Status === 2 ? "Hết hạn" : "Đang chờ";
-                    const statusColor = hist.Status === 1
-                      ? "text-[var(--color-binance-success)] bg-[var(--color-binance-success)]/10 border-[var(--color-binance-success)]/20"
-                      : hist.Status === 2
-                      ? "text-[var(--color-binance-gray)] bg-gray-500/10 border-gray-500/20"
-                      : "text-[var(--color-binance-yellow)] bg-[var(--color-binance-yellow)]/10 border-[var(--color-binance-yellow)]/20";
-                    return (
-                      <tr key={hist.ID} className="hover:bg-[var(--color-binance-border)]/10 transition-colors">
-                        <td className="py-3.5 px-4 font-mono text-gray-400">#{hist.ID}</td>
-                        <td className="py-3.5 px-4 font-semibold text-white">{hist.ServiceName}</td>
-                        <td className="py-3.5 px-4 font-mono font-semibold">{hist.PhoneOriginal || hist.Phone}</td>
-                        <td className="py-3.5 px-4">
-                          {hist.Code ? (
-                            <span className="bg-[var(--color-binance-yellow)]/10 text-[var(--color-binance-yellow)] px-2 py-1.5 rounded-sm font-mono font-bold text-sm border border-[var(--color-binance-yellow)]/20">
-                              {hist.Code}
-                            </span>
-                          ) : <span className="text-[var(--color-binance-gray)] italic">-</span>}
-                        </td>
-                        <td className="py-3.5 px-4 max-w-xs truncate text-[var(--color-binance-gray)]" title={hist.SmsContent}>
-                          {hist.SmsContent || "-"}
-                        </td>
-                        <td className="py-3.5 px-4 text-[var(--color-binance-yellow)] font-mono font-semibold">{formatCoin(hist.Price)}</td>
-                        <td className="py-3.5 px-4">
-                          <span className={`px-2 py-0.5 rounded-full border text-[10px] font-medium ${statusColor}`}>{statusText}</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-[var(--color-binance-gray)]">
-                          {new Date(hist.CreatedTime).toLocaleString("vi-VN")}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-16 text-center text-[var(--color-binance-gray)] text-sm">
-                Không tìm thấy dữ liệu lịch sử thuê số.
-              </div>
-            )}
-          </div>
-        </div>
+        <OtpHistoryBox hideHeader={true} onRentAgain={handleRentAgain} />
       )}
 
       {/* SECTION 5: ACTIVE RENTALS */}
-      <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-6 shadow-lg">
+      <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg">
         <div className="flex justify-between items-center mb-6 border-b border-[var(--color-binance-border)] pb-3">
           <div className="flex items-center gap-2">
-            <Phone size={20} className="text-[var(--color-binance-yellow)]" />
-            <h2 className="text-lg font-semibold">SIM Đang Hoạt Động & Chờ OTP</h2>
+            <Phone size={16} className="text-[var(--color-binance-yellow)] shrink-0" />
+            <h2 className="text-sm font-semibold whitespace-nowrap">SIM Đang Hoạt Động</h2>
           </div>
-          <span className="bg-[var(--color-binance-border)]/50 text-white text-xs px-2.5 py-1 rounded-full font-mono">
+          <span suppressHydrationWarning className="bg-[var(--color-binance-border)]/50 text-white text-xs px-2.5 py-1 rounded-full font-mono">
             {activeRentals.length} số
           </span>
         </div>
 
         {activeRentals.length === 0 ? (
-          <div className="p-12 text-center flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-binance-border)] rounded-lg">
+          <div className="py-12 text-center flex flex-col items-center justify-center border-2 border-dashed border-[var(--color-binance-border)] rounded-xl">
             <div className="w-12 h-12 rounded-full bg-[var(--color-binance-darker)] flex items-center justify-center text-[var(--color-binance-gray)] mb-3">
               <Phone size={22} />
             </div>
-            <p className="text-[var(--color-binance-gray)] text-sm">Không có số điện thoại nào đang hoạt động.</p>
-            <p className="text-[var(--color-binance-gray)] text-xs mt-1">Yêu cầu thuê số ở khung bên trên để nhận OTP trực tuyến.</p>
+            <p className="text-[var(--color-binance-gray)] text-sm">Chưa có số nào đang hoạt động</p>
+            <p className="text-[var(--color-binance-gray)] text-xs mt-1 opacity-60">Thuê số ở khung bên trên để nhận OTP</p>
           </div>
         ) : (
-          <div className="flex flex-col divide-y divide-[var(--color-binance-border)]/50 rounded-lg border border-[var(--color-binance-border)] overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeRentals.map((rental) => {
               const durationSecs = 300;
               const elapsed = Math.floor((now - new Date(rental.createdAt).getTime()) / 1000);
@@ -807,126 +802,122 @@ export default function OtpRentBox() {
               const isPhoneCopied = copiedText === rental.phone_number;
               const isCodeCopied = copiedText === rental.code;
 
-              const accentColor = isCompleted
-                ? "var(--color-binance-success)"
-                : isExpired
-                ? "#6b7280"
-                : "var(--color-binance-yellow)";
+              const borderColor = isCompleted ? "#22c55e" : isExpired ? "#4b5563" : "#f0b90b";
+              const bgGlow = isCompleted ? "bg-green-500/[0.04]" : isExpired ? "" : "bg-yellow-500/[0.03]";
 
               return (
                 <div
                   key={rental.request_id}
-                  className={`relative flex flex-col ${isExpired ? "opacity-60" : ""} ${isCompleted ? "bg-[var(--color-binance-success)]/[0.03]" : ""}`}
+                  className={`relative rounded-xl border bg-[var(--color-binance-darker)]/40 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg shadow-black/20 overflow-hidden ${isExpired ? "opacity-60" : ""}`}
+                  style={{ borderColor }}
                 >
-                  {/* Colored left border accent */}
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: accentColor }} />
+                  {/* Top glow strip */}
+                  <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${borderColor}aa, transparent)` }} />
 
-                  {/* Main row */}
-                  <div className="flex items-center gap-3 pl-5 pr-4 py-3">
+                  <div className="p-4 flex flex-col gap-3">
 
-                    {/* Service name + country */}
-                    <div className="shrink-0 w-28 min-w-0">
-                      <div className="text-xs font-semibold text-[var(--color-binance-light)] truncate">{rental.service_name}</div>
-                      <div className="text-[10px] text-[var(--color-binance-gray)] flex items-center gap-1 mt-0.5">
-                        <Globe size={9} className="text-blue-400" /> {rental.countryISO}
+                    {/* Header row: icon | info | status + actions */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="shrink-0 w-8 h-8 rounded-lg bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] flex items-center justify-center">
+                          <BrandIcon name={rental.service_name?.toLowerCase()} />
+                        </div>
+
+                        {/* Service name + meta */}
+                        <div className="min-w-0">
+                          <div className="text-sm font-bold text-[var(--color-binance-light)] leading-snug truncate" title={rental.service_name}>{rental.service_name}</div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Globe size={9} className="text-blue-400 shrink-0" />
+                            <span className="text-[10px] font-semibold text-[var(--color-binance-gray)]">{rental.countryISO?.toUpperCase()}</span>
+                            <span className="text-[10px] text-[var(--color-binance-gray)]/40">·</span>
+                            <span className="text-[10px] text-[var(--color-binance-yellow)] font-mono whitespace-nowrap">{formatCoin(rental.price)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status + Actions Row */}
+                      <div className="shrink-0 flex items-center gap-2">
+                        {isWaiting && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/25">
+                            <RefreshCw size={9} className="animate-spin text-yellow-400" />
+                            <span className="font-mono text-[10px] text-yellow-400 tabular-nums">{formattedTime}</span>
+                          </div>
+                        )}
+                        {isCompleted && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/25">
+                            <CheckCircle2 size={10} className="text-green-400" />
+                            <span className="text-[10px] text-green-400">Thành công</span>
+                          </div>
+                        )}
+                        {isExpired && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-500/10 border border-gray-500/25">
+                            <XCircle size={10} className="text-gray-400" />
+                            <span className="text-[10px] text-gray-400">Hết hạn</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center border-l border-[var(--color-binance-border)]/40 pl-1.5 ml-0.5 gap-0.5">
+                          <button onClick={() => handleRentAgain(rental)} title="Thuê lại số này" className="p-1 rounded text-[var(--color-binance-gray)] hover:text-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-yellow)]/10 transition-colors cursor-pointer">
+                            <RefreshCw size={12} />
+                          </button>
+                          <button onClick={() => handleRemoveRental(rental.request_id)} title="Xóa thẻ này" className="p-1 rounded text-[var(--color-binance-gray)] hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Phone number */}
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="font-mono font-bold text-white text-sm tracking-wide truncate">
-                        {rental.countryCode ? `+${rental.countryCode} ` : ""}{rental.phone_number}
-                      </span>
-                      <button
-                        onClick={() => copy(rental.phone_number)}
-                        className="shrink-0 p-1 text-[var(--color-binance-gray)] hover:text-white transition-colors cursor-pointer"
-                      >
-                        {isPhoneCopied
-                          ? <Check size={13} className="text-[var(--color-binance-success)]" />
-                          : <Copy size={13} />
-                        }
+                    {/* Phone number row */}
+                    <div className="flex items-center justify-between gap-2 bg-[var(--color-binance-darker)]/80 hover:bg-[var(--color-binance-darker)] rounded-lg px-3 py-2 border border-[var(--color-binance-border)]/40 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? "bg-green-400" : isExpired ? "bg-gray-500" : "bg-yellow-400 animate-pulse"}`} />
+                        <span className="font-mono font-bold text-white text-[13px] tracking-wide">
+                          {rental.countryCode ? `+${rental.countryCode} ` : ""}{rental.phone_number}
+                        </span>
+                      </div>
+                      <button onClick={() => copy(rental.phone_number)} className="p-1 rounded text-[var(--color-binance-gray)] hover:text-white hover:bg-white/10 transition-colors cursor-pointer" title="Copy số điện thoại">
+                        {isPhoneCopied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
                       </button>
                     </div>
 
-                    {/* Status / Timer / OTP */}
-                    <div className="shrink-0 flex items-center gap-2">
-                      {isWaiting && (
-                        <>
-                          <RefreshCw size={12} className="animate-spin text-[var(--color-binance-yellow)]" />
-                          <span className="font-mono text-xs text-yellow-400 flex items-center gap-1 tabular-nums">
-                            <Timer size={11} className="animate-pulse" />{formattedTime}
-                          </span>
-                        </>
-                      )}
-                      {isCompleted && rental.code && (
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-black text-[var(--color-binance-success)] text-lg tracking-widest">
-                            {rental.code}
-                          </span>
-                          <button
-                            onClick={() => copy(rental.code)}
-                            className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-[var(--color-binance-success)]/15 border border-[var(--color-binance-success)]/30 text-[var(--color-binance-success)] hover:bg-[var(--color-binance-success)]/25 transition-colors cursor-pointer"
-                          >
-                            {isCodeCopied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
-                          </button>
+                    {/* OTP code highlight */}
+                    {isCompleted && rental.code && (
+                      <div className="mt-1 flex items-center justify-between gap-3 px-3.5 py-2 rounded-lg bg-green-500/10 border border-green-500/20 shadow-[0_0_12px_rgba(34,197,94,0.05)]">
+                        <div>
+                          <div className="text-[9px] text-green-400/70 uppercase tracking-widest font-bold mb-0.5">Mã OTP</div>
+                          <span className="font-mono font-black text-green-400 text-lg tracking-[0.2em]">{rental.code}</span>
                         </div>
-                      )}
-                      {isCompleted && !rental.code && (
-                        <span className="flex items-center gap-1 text-xs text-[var(--color-binance-success)]">
-                          <CheckCircle2 size={13} /> Thành công
-                        </span>
-                      )}
-                      {isExpired && (
-                        <span className="flex items-center gap-1 text-xs text-gray-500">
-                          <XCircle size={13} /> Hết hạn
-                        </span>
-                      )}
-                    </div>
+                        <button
+                          onClick={() => copy(rental.code)}
+                          className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-colors cursor-pointer"
+                        >
+                          {isCodeCopied ? <><Check size={11} /> Copy xong</> : <><Copy size={11} /> Copy</>}
+                        </button>
+                      </div>
+                    )}
 
-                    {/* Price */}
-                    <span className="shrink-0 text-xs font-mono text-[var(--color-binance-yellow)] hidden sm:block">
-                      {formatCoin(rental.price)}
-                    </span>
+                    {/* Progress bar */}
+                    {isWaiting && (
+                      <div className="mt-1 h-1 bg-[var(--color-binance-border)] rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-linear"
+                          style={{ width: `${pct}%`, background: `linear-gradient(90deg, #f0b90b, #fbbf24)` }}
+                        />
+                      </div>
+                    )}
 
-                    {/* Actions */}
-                    <div className="shrink-0 flex items-center gap-1">
-                      <button
-                        onClick={() => handleRentAgain(rental)}
-                        title="Thuê lại số này"
-                        className="p-1.5 rounded text-[var(--color-binance-gray)] hover:text-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-border)]/50 transition-colors cursor-pointer"
-                      >
-                        <RefreshCw size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleRemoveRental(rental.request_id)}
-                        title="Xóa phiên này"
-                        className="p-1.5 rounded text-[var(--color-binance-gray)] hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                    {/* SMS content */}
+                    {rental.smsContent && (
+                      <div className="mt-1 px-3 py-2.5 bg-[var(--color-binance-darker)]/80 border border-[var(--color-binance-border)]/50 rounded-lg">
+                        <div className="text-[9px] text-[var(--color-binance-gray)] uppercase tracking-wider font-bold mb-1 opacity-70">Tin nhắn nhận được</div>
+                        {rental.isSound ? (
+                          <audio src={rental.smsContent} controls className="w-full h-7" />
+                        ) : (
+                          <p className="font-mono text-xs text-white/95 whitespace-pre-wrap select-all leading-relaxed break-all">{rental.smsContent}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-
-                  {/* Progress bar (waiting) */}
-                  {isWaiting && (
-                    <div className="mx-5 mb-2 h-0.5 bg-[var(--color-binance-border)] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[var(--color-binance-yellow)] to-amber-400 transition-all duration-1000 ease-linear"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  )}
-
-                  {/* SMS content (if received) */}
-                  {rental.smsContent && (
-                    <div className="mx-5 mb-3 px-3 py-2 bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded text-xs text-[var(--color-binance-gray)]">
-                      {rental.isSound ? (
-                        <audio src={rental.smsContent} controls className="w-full h-7" />
-                      ) : (
-                        <p className="font-mono text-white/80 whitespace-pre-wrap select-all leading-relaxed">{rental.smsContent}</p>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })}

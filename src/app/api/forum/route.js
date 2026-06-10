@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
 import { supabaseServer } from '@/lib/supabase';
 
 // GET /api/forum — Lấy danh sách bài viết (có phân trang)
@@ -20,14 +21,11 @@ export async function GET(request) {
   return NextResponse.json({ data, count, page, limit });
 }
 
-// POST /api/forum — Đăng bài mới (cần Auth)
+// POST /api/forum — Đăng bài mới (cookie-based auth, không cần Bearer token)
 export async function POST(request) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
-  if (authError || !user) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
   const { title, content } = body;
@@ -36,7 +34,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Tiêu đề và nội dung không được để trống' }, { status: 400 });
   }
 
-  const { data, error } = await supabaseServer
+  const { data, error } = await supabase
     .from('forum_posts')
     .insert({ title: title.trim(), content: content.trim(), author_id: user.id })
     .select('*, profiles(display_name, avatar_url)')

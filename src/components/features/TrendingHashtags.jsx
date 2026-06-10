@@ -47,8 +47,8 @@ export default function TrendingHashtags() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-32 bg-[var(--color-binance-yellow)]/5 blur-[80px] pointer-events-none rounded-full"></div>
 
       {/* Header & Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-12 relative z-10">
-        <h2 className="text-lg font-bold text-[var(--color-binance-light)] flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-12 relative z-10">
+        <h2 className="text-sm sm:text-lg font-bold text-[var(--color-binance-light)] flex items-center gap-2">
           <Flame className="text-[var(--color-binance-error)]" size={20} />
           Bảng Xếp Hạng Hashtag
         </h2>

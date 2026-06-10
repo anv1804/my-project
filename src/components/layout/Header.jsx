@@ -3,6 +3,7 @@ import { useTheme } from "next-themes";
 import { useLayoutStore } from "@/store/useLayoutStore";
 
 import { useAuthStore } from "@/store/useAuthStore";
+import { syncCoins } from "@/utils/coinService";
 import { Bell, User, Search, Menu, Sun, Moon, ArrowRight, LogOut, Coins } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -12,11 +13,11 @@ import { removeVietnameseTones } from "@/utils/stringUtils";
 export default function Header() {
   const { theme, setTheme } = useTheme();
   const toggleSidebar = useLayoutStore(state => state.toggleSidebar);
+  const toggleMobileMenu = useLayoutStore(state => state.toggleMobileMenu);
   const openCoinModal = useLayoutStore(state => state.openCoinModal);
 
   const handleOpenCoinModal = () => {
-    // Re-fetch profile để đảm bảo coin balance luôn mới nhất
-    if (user) useAuthStore.getState().fetchProfile(user.id);
+    syncCoins();
     openCoinModal();
   };
   const { openLoginModal, user, profile, signOut, isLoading } = useAuthStore();
@@ -41,6 +42,40 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Headroom scroll detection logic
+  const [visible, setVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Ignore negative scroll values (like on iOS bounce)
+      if (currentScrollY < 0) return;
+
+      // If we are at the very top (or close to it), always show header
+      if (currentScrollY <= 64) {
+        setVisible(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      // Check scroll direction
+      if (currentScrollY > lastScrollY.current) {
+        // Scrolling down -> hide header
+        setVisible(false);
+      } else {
+        // Scrolling up -> show header
+        setVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Filter tools based on query
   const searchResults = MENU_GROUPS.flatMap(group => 
     group.items.map(item => ({ ...item, groupTitle: group.title }))
@@ -61,11 +96,11 @@ export default function Header() {
   };
 
   return (
-    <header className="h-16 border-b border-[var(--color-binance-border)] bg-[var(--color-binance-dark)]/95 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 transition-colors duration-300">
+    <header className={`h-16 border-b border-[var(--color-binance-border)] bg-[var(--color-binance-dark)]/95 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 transition-all duration-300 ${visible ? "translate-y-0" : "-translate-y-full"}`}>
       <div className="flex items-center gap-4">
         {/* Nút Menu Hamburger giờ chỉ hiển thị ở Mobile (md:hidden) */}
-        <button 
-          onClick={toggleSidebar} 
+        <button
+          onClick={toggleMobileMenu}
           className="p-2 md:hidden text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 rounded-md transition-colors cursor-pointer"
         >
           <Menu size={20} />

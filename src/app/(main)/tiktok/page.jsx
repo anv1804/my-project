@@ -28,23 +28,23 @@ export default function TiktokDashboardPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full animate-in fade-in duration-500">
       
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--color-binance-border)]">
-        <TiktokIcon size={32} className="text-[var(--color-binance-yellow)]" />
-        <h1 className="text-3xl font-bold text-[var(--color-binance-light)]">Tổng Quan Công Cụ TikTok</h1>
+      <div className="flex items-center gap-3 mb-5 sm:mb-8 pb-4 border-b border-[var(--color-binance-border)]">
+        <TiktokIcon size={24} className="text-[var(--color-binance-yellow)]" />
+        <h1 className="text-xl sm:text-3xl font-bold text-[var(--color-binance-light)]">Tổng Quan Công Cụ TikTok</h1>
       </div>
 
       {/* Workflow Section */}
-      <section className="mb-12">
-        <h2 className="text-xl font-bold text-[var(--color-binance-light)] mb-6 flex items-center gap-2">
-          <CheckCircle2 className="text-[var(--color-binance-yellow)]" />
+      <section className="mb-8 sm:mb-12">
+        <h2 className="text-base sm:text-xl font-bold text-[var(--color-binance-light)] mb-4 sm:mb-6 flex items-center gap-2">
+          <CheckCircle2 size={18} className="text-[var(--color-binance-yellow)]" />
           Luồng Thao Tác Chuẩn (Reup Workflow)
         </h2>
-        
-        <div className="bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl p-6 sm:p-10 relative overflow-hidden">
+
+        <div className="bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-2xl p-4 sm:p-10 relative overflow-hidden">
           {/* Decorative background glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-32 bg-[var(--color-binance-yellow)]/5 blur-[80px] pointer-events-none"></div>
           
-          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-8 sm:gap-0">
+          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
             {/* Connecting Line for desktop */}
             <div className="hidden sm:block absolute top-[28px] left-[10%] right-[10%] h-0.5 bg-[var(--color-binance-border)] z-0"></div>
             
@@ -54,13 +54,13 @@ export default function TiktokDashboardPage() {
               const isActive = activeTab === step.id;
               
               return (
-                <button 
+                <button
                   key={step.id}
                   onClick={() => setActiveTab(step.id)}
                   className="relative z-10 flex flex-col items-center group w-full sm:w-1/5 focus:outline-none"
                 >
                   <div className={cn(
-                    "w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300 relative",
+                    "w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 transition-all duration-300 relative",
                     isActive 
                       ? "bg-gradient-to-br from-[var(--color-binance-yellow)] to-yellow-500 text-black shadow-[0_0_20px_rgba(240,185,11,0.4)] scale-110" 
                       : "bg-[var(--color-binance-dark)] text-[var(--color-binance-gray)] border border-[var(--color-binance-border)] group-hover:border-[var(--color-binance-yellow)]/50 group-hover:text-[var(--color-binance-yellow)]"
@@ -71,7 +71,7 @@ export default function TiktokDashboardPage() {
                     )}
                   </div>
                   <div className={cn(
-                    "font-bold transition-colors whitespace-nowrap text-[15px]",
+                    "font-bold transition-colors whitespace-nowrap text-xs sm:text-[15px]",
                     isActive ? "text-[var(--color-binance-yellow)]" : "text-[var(--color-binance-light)] group-hover:text-[var(--color-binance-yellow)]/80"
                   )}>
                     {step.title}
@@ -88,8 +88,8 @@ export default function TiktokDashboardPage() {
 
       {/* Detailed Tool Panel */}
       <section>
-        <h2 className="text-xl font-bold text-[var(--color-binance-light)] mb-6 flex items-center gap-2">
-          <Play className="text-[var(--color-binance-yellow)]" />
+        <h2 className="text-base sm:text-xl font-bold text-[var(--color-binance-light)] mb-4 sm:mb-6 flex items-center gap-2">
+          <Play size={18} className="text-[var(--color-binance-yellow)]" />
           Chi Tiết Tính Năng
         </h2>
 
@@ -124,7 +124,7 @@ export default function TiktokDashboardPage() {
                 <activeTool.icon size={24} />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-[var(--color-binance-yellow)] mb-1">
+                <h3 className="text-lg sm:text-2xl font-bold text-[var(--color-binance-yellow)] mb-1">
                   {activeTool.label}
                 </h3>
                 <p className="text-[var(--color-binance-light)] text-sm">

@@ -8,11 +8,11 @@ export const metadata = {
 export default function HashtagPage() {
   return (
     <main className="p-4 sm:p-6 lg:p-8 min-h-screen flex justify-center">
-      <div className="w-full max-w-5xl flex flex-col gap-10">
+      <div className="w-full max-w-5xl flex flex-col gap-6 sm:gap-10">
         
         {/* Tiêu đề trang */}
         <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-binance-light)] mb-3">
+          <h1 className="text-xl sm:text-3xl font-bold text-[var(--color-binance-light)] mb-2 sm:mb-3">
             Trung tâm Phân tích & Tạo Hashtag
           </h1>
           <p className="text-[var(--color-binance-gray)] text-sm max-w-2xl mx-auto">

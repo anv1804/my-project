@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Coins, QrCode, Copy, Check, RefreshCw, CheckCircle2,
   Clock, Wallet, Info, Zap, Building2, Hash, ChevronRight,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { syncCoins } from "@/utils/coinService";
 import { createClient } from "@/utils/supabase/client";
 import toast from "react-hot-toast";
 import Button from "@/components/common/Button";
@@ -62,6 +63,7 @@ export default function NapCoinBox({ onSuccess } = {}) {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [copied, setCopied] = useState("");
   const [polling, setPolling] = useState(false);
+  const completedRef = useRef(false);
 
   const finalAmount = useCustom
     ? (parseInt(customRaw.replace(/\D/g, "")) || 0)
@@ -96,19 +98,10 @@ export default function NapCoinBox({ onSuccess } = {}) {
           filter: `reference=eq.${order.reference}`,
         },
         async (payload) => {
-          if (payload.new.status === "completed") {
+          if (payload.new.status === "completed" && !completedRef.current) {
+            completedRef.current = true;
             setStatus("completed");
-            // Refresh coin balance in header
-            const { data } = await supabase
-              .from("users")
-              .select("coins")
-              .eq("id", user.id)
-              .single();
-            if (data) {
-              useAuthStore.setState((state) => ({
-                profile: { ...state.profile, coins: data.coins },
-              }));
-            }
+            await syncCoins();
             toast.success("Nạp coin thành công!");
             onSuccess?.();
           }
@@ -130,18 +123,10 @@ export default function NapCoinBox({ onSuccess } = {}) {
         .select("status")
         .eq("reference", order.reference)
         .single();
-      if (data?.status === "completed") {
+      if (data?.status === "completed" && !completedRef.current) {
+        completedRef.current = true;
         setStatus("completed");
-        const { data: userRow } = await supabase
-          .from("users")
-          .select("coins")
-          .eq("id", user.id)
-          .single();
-        if (userRow) {
-          useAuthStore.setState((state) => ({
-            profile: { ...state.profile, coins: userRow.coins },
-          }));
-        }
+        await syncCoins();
         toast.success("Nạp coin thành công!");
         onSuccess?.();
       }
@@ -174,6 +159,7 @@ export default function NapCoinBox({ onSuccess } = {}) {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
+      completedRef.current = false;
       setOrder(data.order);
       setStatus("pending");
     } catch (err) {
@@ -196,7 +182,7 @@ export default function NapCoinBox({ onSuccess } = {}) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
 
       {/* ─── LEFT: selector + form ─── */}
       <div className="flex flex-col gap-5">
@@ -224,7 +210,7 @@ export default function NapCoinBox({ onSuccess } = {}) {
             Chọn gói nạp (VND = Coin)
           </h2>
 
-          <div className="grid grid-cols-3 gap-2.5 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
             {PACKAGES.map(({ amount }) => {
               const isSel = !useCustom && selectedAmount === amount;
               return (
@@ -312,7 +298,7 @@ export default function NapCoinBox({ onSuccess } = {}) {
       {/* ─── RIGHT: QR / status ─── */}
       <div className="flex flex-col">
         {status === "idle" && (
-          <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg flex-1 flex flex-col items-center justify-center gap-4 min-h-[420px] p-8">
+          <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg flex-1 flex flex-col items-center justify-center gap-4 min-h-[380px] p-5 sm:p-8">
             <div className="w-20 h-20 rounded-full bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] flex items-center justify-center">
               <QrCode size={36} className="text-[var(--color-binance-gray)]" />
             </div>
@@ -367,7 +353,7 @@ export default function NapCoinBox({ onSuccess } = {}) {
                   alt="VietQR"
                   width={220}
                   height={220}
-                  className="block"
+                  className="block w-full max-w-[220px] h-auto"
                   onError={(e) => { e.target.style.display = "none"; }}
                 />
               </div>
@@ -427,7 +413,7 @@ export default function NapCoinBox({ onSuccess } = {}) {
         )}
 
         {status === "completed" && order && (
-          <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-success)]/40 rounded-lg flex-1 flex flex-col items-center justify-center gap-5 min-h-[420px] p-8">
+          <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-success)]/40 rounded-lg flex-1 flex flex-col items-center justify-center gap-5 min-h-[380px] p-5 sm:p-8">
             <div className="w-24 h-24 rounded-full bg-[var(--color-binance-success)]/10 border-2 border-[var(--color-binance-success)]/30 flex items-center justify-center">
               <CheckCircle2 size={44} className="text-[var(--color-binance-success)]" />
             </div>

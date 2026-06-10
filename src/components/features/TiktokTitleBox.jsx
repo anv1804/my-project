@@ -3,6 +3,7 @@
 import { useState, Suspense, useEffect } from "react";
 import { Sparkles, Image as ImageIcon, Video, Copy, Check, Loader2, ArrowRight } from "lucide-react";
 import Button from "@/components/common/Button";
+import Input from "@/components/common/Input";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -102,10 +103,10 @@ function TiktokTitleBoxContent() {
   };
 
   return (
-    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-xl p-6 shadow-xl transition-colors duration-300 flex flex-col gap-6">
+    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-xl p-4 sm:p-6 shadow-xl transition-colors duration-300 flex flex-col gap-5 sm:gap-6">
       
       {/* Type Selector */}
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-2 sm:gap-4">
         <label className="flex items-center gap-2 cursor-pointer group">
           <input 
             type="radio" 
@@ -142,19 +143,19 @@ function TiktokTitleBoxContent() {
         <label className="block text-sm font-medium text-[var(--color-binance-gray)] mb-2">
           Từ khóa sản phẩm / nội dung
         </label>
-        <div className="flex gap-3">
-          <input 
-            type="text" 
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input
+            type="text"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            placeholder="VD: Quần áo mùa đông, Sách hay..." 
-            className="flex-1 bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] rounded-md px-4 py-2.5 text-[var(--color-binance-light)] placeholder-[var(--color-binance-gray)] focus:border-[var(--color-binance-yellow)] outline-none transition-colors"
+            placeholder="VD: Quần áo mùa đông, Sách hay..."
+            className="flex-1 bg-[var(--color-binance-darker)]"
             onKeyDown={(e) => e.key === 'Enter' && handleGenerate(keyword)}
           />
-          <Button 
-            onClick={() => handleGenerate(keyword)} 
+          <Button
+            onClick={() => handleGenerate(keyword)}
             disabled={!keyword.trim() || isGenerating}
-            className="flex-shrink-0"
+            className="w-full sm:w-auto"
           >
             {isGenerating ? (
               <><Loader2 size={18} className="animate-spin" /> Đang tạo...</>

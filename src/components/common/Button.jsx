@@ -1,7 +1,7 @@
 import { cn } from "@/utils/cn";
 
 export default function Button({ children, className, variant = 'primary', ...props }) {
-  const baseStyles = "inline-flex items-center justify-center font-medium transition-colors rounded-sm px-4 py-2 text-sm cursor-pointer";
+  const baseStyles = "inline-flex items-center justify-center font-medium transition-all rounded-sm px-3.5 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm cursor-pointer h-9 sm:h-10 select-none active:scale-[0.98]";
   const variants = {
     primary: "bg-[var(--color-binance-yellow)] text-black hover:bg-[var(--color-binance-yellow-hover)] font-semibold",
     secondary: "bg-[var(--color-binance-border)] text-[var(--color-binance-light)] hover:bg-[#3b434f]",

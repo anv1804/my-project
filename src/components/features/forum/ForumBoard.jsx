@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart, Eye, Plus, X, Loader2 } from 'lucide-react';
 import Button from '@/components/common/Button';
+import Input from '@/components/common/Input';
 import toast from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -65,13 +66,9 @@ export default function ForumBoard() {
 
     setIsPosting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/forum', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: newTitle, content: newContent }),
       });
 
@@ -187,10 +184,10 @@ export default function ForumBoard() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--color-binance-gray)] mb-2">Tiêu đề bài viết</label>
-                <input
+                <Input
                   type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)}
                   placeholder="Nhập tiêu đề thật kêu để thu hút người xem..."
-                  className="w-full bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg px-4 py-3 text-[var(--color-binance-light)] focus:border-[var(--color-binance-yellow)] outline-none transition-colors"
+                  className="w-full bg-[var(--color-binance-dark)] px-4 py-3 rounded-lg"
                 />
               </div>
               <div>

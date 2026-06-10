@@ -32,8 +32,8 @@ export default function TikTokDownloader() {
       <div className="space-y-8">
         {/* Header section */}
         <div className="flex flex-col gap-2 mb-8 pb-4 border-b border-[var(--color-binance-border)]">
-          <h1 className="text-3xl font-bold text-[var(--color-binance-yellow)] flex items-center gap-3">
-            <Download size={32} />
+          <h1 className="text-xl sm:text-3xl font-bold text-[var(--color-binance-yellow)] flex items-center gap-2 sm:gap-3">
+            <Download size={22} className="shrink-0" />
             Tải Video TikTok / Douyin
           </h1>
           <p className="text-[var(--color-binance-gray)] text-sm sm:text-base">
@@ -43,7 +43,7 @@ export default function TikTokDownloader() {
 
         {/* Input Form */}
         <div className="bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] p-6 sm:p-8 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <div className="relative flex-grow">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-[var(--color-binance-gray)]" />

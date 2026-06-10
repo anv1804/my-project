@@ -10,6 +10,18 @@
   --color-binance-border: var(--color-binance-border);
   --color-binance-success: var(--color-binance-success);
   --color-binance-error: var(--color-binance-error);
+
+  /* Fluid typography: auto scales with viewport width between mobile (320px) & desktop (1280px) */
+  --text-xs: clamp(0.7rem, 0.4vw + 0.65rem, 0.75rem);
+  --text-sm: clamp(0.75rem, 0.6vw + 0.7rem, 0.875rem);
+  --text-base: clamp(0.875rem, 0.8vw + 0.75rem, 1rem);
+  --text-lg: clamp(1rem, 1vw + 0.8rem, 1.125rem);
+  --text-xl: clamp(1.125rem, 1.25vw + 0.85rem, 1.25rem);
+  --text-2xl: clamp(1.25rem, 1.5vw + 0.95rem, 1.5rem);
+  --text-3xl: clamp(1.5rem, 2vw + 1.1rem, 1.875rem);
+  --text-4xl: clamp(1.875rem, 2.5vw + 1.35rem, 2.25rem);
+  --text-5xl: clamp(2.25rem, 3.5vw + 1.5rem, 3rem);
+  --text-6xl: clamp(3rem, 5vw + 1.75rem, 4.5rem);
 }
 
 @layer base {
@@ -38,6 +50,25 @@
     --color-binance-yellow-hover: #FCD535;
     --color-binance-success: #0ECB81;
     --color-binance-error: #F6465D;
+  }
+
+  /* Automatically adjust Lucide Icon sizes on mobile screen sizes to keep them proportional */
+  svg.lucide {
+    display: inline-block;
+    vertical-align: middle;
+    transition: transform 0.2s ease, width 0.2s ease, height 0.2s ease;
+  }
+
+  @media (max-width: 640px) {
+    svg.lucide:not(.no-responsive) {
+      transform: scale(0.9);
+      transform-origin: center;
+    }
+  }
+
+  /* Standardizing fluid gaps and responsive layouts on mobile */
+  .gap-responsive {
+    gap: clamp(0.75rem, 2vw, 1.5rem);
   }
 }
 

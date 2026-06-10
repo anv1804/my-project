@@ -7,9 +7,9 @@ export const metadata = {
 
 export default function TiktokTitlePage() {
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[var(--color-binance-light)] mb-2">
+    <div className="max-w-3xl mx-auto px-4 py-5 sm:py-8">
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-binance-light)] mb-2">
           Gợi ý Tiêu đề TikTok (Viral)
         </h1>
         <p className="text-[var(--color-binance-gray)] text-sm">

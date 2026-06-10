@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { logAction, getClientIp } from '@/utils/serverUtils';
 
 const WEBHOOK_SECRET = process.env.SEPAY_WEBHOOK_SECRET;
 
@@ -51,7 +52,24 @@ export async function POST(request) {
 
   if (error) {
     console.error('Webhook RPC error:', error);
+    logAction({
+      action: 'coin_topup', status: 'failed',
+      refId: reference,
+      metadata: { transferAmount, content: body.content, error: error.message, gateway: body.gateway },
+      ip: getClientIp(request),
+    });
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+  }
+
+  if (data?.success && data?.user_id) {
+    logAction({
+      userId: data.user_id, action: 'coin_topup',
+      coinsAfter: data.coins_after,
+      coinsDelta: data.coins_added,
+      refId: reference,
+      metadata: { transferAmount, bank_account: body.accountNumber, gateway: body.gateway, content: body.content },
+      ip: getClientIp(request),
+    });
   }
 
   console.log('Webhook: completed transaction', reference, data);

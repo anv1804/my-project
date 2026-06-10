@@ -1,8 +1,6 @@
-import { createBrowserClient } from '@supabase/ssr'
+// Trả về singleton từ lib/supabase.js để tránh nhiều GoTrueClient cùng lúc
+import { supabase } from '@/lib/supabase';
 
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
+  return supabase;
 }
