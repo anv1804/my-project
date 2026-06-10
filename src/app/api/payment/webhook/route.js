@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { logAction, getClientIp } from '@/utils/serverUtils';
 
-const WEBHOOK_SECRET = process.env.SEPAY_WEBHOOK_SECRET;
+const WEBHOOK_SECRET  = process.env.SEPAY_WEBHOOK_SECRET;
+const BANK_ACCOUNT_NO = process.env.BANK_ACCOUNT_NO;
 
 // SePay sends: POST with Authorization: Apikey <secret>
 // Body: { id, gateway, transactionDate, accountNumber, subAccount, content,
@@ -26,6 +27,12 @@ export async function POST(request) {
   // Only process incoming transfers
   if (body.transferType !== 'in') {
     return NextResponse.json({ success: true, message: 'Ignored: outgoing transfer' });
+  }
+
+  // Only process transfers to our configured bank account
+  if (BANK_ACCOUNT_NO && body.accountNumber && body.accountNumber !== BANK_ACCOUNT_NO) {
+    console.warn('Webhook: wrong account number', body.accountNumber);
+    return NextResponse.json({ success: true, message: 'Ignored: wrong account' });
   }
 
   const content = (body.content || '').toUpperCase();
