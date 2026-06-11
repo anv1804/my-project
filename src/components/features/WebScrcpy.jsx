@@ -173,8 +173,11 @@ export default function WebScrcpy() {
                 audioData.sampleRate
               );
               for (let c = 0; c < audioData.numberOfChannels; c++) {
-                const f32Array = new Float32Array(audioData.numberOfFrames);
-                audioData.copyTo(f32Array, { planeIndex: c, format: "f32" });
+                const options = { planeIndex: c, format: "f32-planar" };
+                const size = audioData.allocationSize(options);
+                const buffer = new ArrayBuffer(size);
+                audioData.copyTo(buffer, options);
+                const f32Array = new Float32Array(buffer);
                 audioBuffer.copyToChannel(f32Array, c);
               }
               const source = audioCtx.createBufferSource();
@@ -182,7 +185,8 @@ export default function WebScrcpy() {
               source.connect(audioCtx.destination);
               
               if (nextStartTime < audioCtx.currentTime) {
-                nextStartTime = audioCtx.currentTime;
+                // Add a small 50ms buffer to prevent stuttering from network jitter
+                nextStartTime = audioCtx.currentTime + 0.05;
               }
               source.start(nextStartTime);
               nextStartTime += audioBuffer.duration;
