@@ -363,10 +363,10 @@ export default function WebScrcpy() {
   }, []);
 
   return (
-    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-xl shadow-lg mt-6 overflow-hidden flex flex-col">
+    <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-xl shadow-lg overflow-hidden flex flex-col h-full">
       
       {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-[var(--color-binance-border)] flex items-center justify-between bg-[var(--color-binance-dark)]/50">
+      <div className="p-4 sm:p-5 border-b border-[var(--color-binance-border)] flex items-center justify-between bg-[var(--color-binance-dark)]/50 shrink-0">
         <div className="flex items-center gap-3">
           <MonitorPlay className="text-[var(--color-binance-yellow)]" size={20} strokeWidth={2} />
           <h2 className="text-sm font-semibold text-white tracking-wide">TRÌNH CHIẾU THIẾT BỊ</h2>
@@ -381,7 +381,7 @@ export default function WebScrcpy() {
       </div>
 
       {/* Content Area */}
-      <div className="p-4 sm:p-5 flex flex-col gap-6">
+      <div className="p-4 sm:p-5 flex flex-col gap-6 flex-1 min-h-0">
         
         {/* Cột trái: Điều khiển & Hướng dẫn (Chỉ hiển thị khi CHƯA kết nối) */}
         {!isConnected && (
@@ -431,10 +431,10 @@ export default function WebScrcpy() {
 
         {/* Viewport Màn Hình (Chỉ hiển thị khi ĐÃ kết nối) */}
         {isConnected && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 flex-1 min-h-0">
             
             {/* Phone Frame */}
-            <div className="w-full bg-black rounded-lg border border-white/10 shadow-inner relative overflow-hidden flex items-center justify-center" style={{ aspectRatio: "9/19", maxHeight: "80vh" }}>
+            <div className="w-full flex-1 min-h-0 bg-black rounded-lg border border-white/10 shadow-inner relative overflow-hidden flex items-center justify-center">
               <div className="w-full h-full relative cursor-pointer" title="Chuột trái: Chạm | Chuột phải: Quay lại (Back)">
                 <div ref={containerRef} className="w-full h-full bg-black" />
               </div>
