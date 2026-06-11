@@ -124,14 +124,17 @@ export default function WebScrcpy() {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
       
-      // Sử dụng WebGLVideoFrameRenderer để ép trình duyệt vẽ ngay lập tức (Zero Latency)
-      // Bỏ qua InsertableStream vì thẻ <video> luôn có độ trễ Jitter Buffer ~50ms
+      // Bắt buộc dùng InsertableStreamVideoFrameRenderer để vẽ bằng GPU phần cứng (Card màn hình)
+      // Không được dùng WebGL trên Main Thread vì nó sẽ gây giật lag trình duyệt cực nặng
       let renderer;
-      try {
-        renderer = new WebGLVideoFrameRenderer();
-      } catch (e) {
-        console.warn("WebGL not supported, falling back to Bitmap renderer");
-        renderer = new BitmapVideoFrameRenderer();
+      if (InsertableStreamVideoFrameRenderer.isSupported) {
+        renderer = new InsertableStreamVideoFrameRenderer();
+      } else {
+        try {
+          renderer = new WebGLVideoFrameRenderer();
+        } catch (e) {
+          renderer = new BitmapVideoFrameRenderer();
+        }
       }
 
       const decoder = new WebCodecsVideoDecoder({
@@ -246,10 +249,6 @@ export default function WebScrcpy() {
           domElement.releasePointerCapture(e.pointerId);
         }
         isDragging = false;
-        if (moveEventPending && lastMoveEvent) {
-          sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
-          moveEventPending = false;
-        }
         sendTouchEvent(e, 1 /* ACTION_UP */);
       });
 
@@ -260,7 +259,6 @@ export default function WebScrcpy() {
         }
         if (isDragging) {
           isDragging = false;
-          moveEventPending = false;
           sendTouchEvent(e, 1 /* ACTION_UP */);
         }
       });
