@@ -117,11 +117,14 @@ export default function WebScrcpy() {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
       let renderer;
-      try {
-        renderer = new WebGLVideoFrameRenderer();
-      } catch (e) {
-        console.warn("WebGL not supported, falling back to Bitmap renderer");
-        renderer = new BitmapVideoFrameRenderer();
+      if (InsertableStreamVideoFrameRenderer.isSupported) {
+        renderer = new InsertableStreamVideoFrameRenderer();
+      } else {
+        try {
+          renderer = new WebGLVideoFrameRenderer();
+        } catch (e) {
+          renderer = new BitmapVideoFrameRenderer();
+        }
       }
 
       const decoder = new WebCodecsVideoDecoder({
@@ -143,6 +146,7 @@ export default function WebScrcpy() {
       
       // Force play if it's a video element (fixes autoplay issues)
       if (domElement instanceof HTMLVideoElement) {
+        domElement.playsInline = true;
         domElement.play().catch(e => console.error("Play error:", e));
       }
       
