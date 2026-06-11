@@ -63,6 +63,7 @@ export default function WebScrcpy() {
         serial: device.serial,
         connection,
         credentialStore,
+        initialDelayedAckBytes: 0,
       });
       const adb = new Adb(transport);
       adbRef.current = adb;
@@ -95,7 +96,11 @@ export default function WebScrcpy() {
         version: "2.1.1"
       });
       
-      const scrcpy = await AdbScrcpyClient.start(adb, "/data/local/tmp/scrcpy-server.jar", options);
+      // Start Scrcpy with a 15-second timeout
+      const scrcpyPromise = AdbScrcpyClient.start(adb, "/data/local/tmp/scrcpy-server.jar", options);
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout kết nối tới thiết bị (Quá 15s). Vui lòng thử lại hoặc khởi động lại đt.")), 15000));
+      
+      const scrcpy = await Promise.race([scrcpyPromise, timeoutPromise]);
       scrcpyRef.current = scrcpy;
 
       // 5. Decode Video
