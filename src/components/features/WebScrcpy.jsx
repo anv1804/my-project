@@ -102,8 +102,8 @@ export default function WebScrcpy() {
       // 4. Start Scrcpy
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
       const options = new AdbScrcpyOptionsLatest({
-        maxSize: 480,
-        bitRate: 1500000,
+        maxSize: 720,
+        bitRate: 4000000,
         audio: false,
         control: true, // Cho phép điều khiển
       }, {
@@ -165,14 +165,22 @@ export default function WebScrcpy() {
       // 6. Handle Control Injection (Mouse/Touch/Scroll)
       // Dịch sự kiện chuột trên DOM renderer (canvas) sang tọa độ Scrcpy
       let isDragging = false;
-      let lastMoveTime = 0;
+      let moveEventPending = false;
+      let lastMoveEvent = null;
+      let cachedRect = null; // Cache để chống giật (Layout Thrashing)
+      
+      // Lấy rect mới khi resize
+      const updateRect = () => { cachedRect = domElement.getBoundingClientRect(); };
+      window.addEventListener("resize", updateRect);
+      // Đợi DOM render xong để lấy Rect chuẩn
+      setTimeout(updateRect, 500);
 
       // Xử lý Lăn Chuột / Vuốt Touchpad (CỰC KỲ QUAN TRỌNG ĐỂ HẾT LAG KHI CUỘN)
       domElement.addEventListener("wheel", (e) => {
         e.preventDefault();
         if (!scrcpyRef.current || !scrcpyRef.current.controller) return;
 
-        const rect = domElement.getBoundingClientRect();
+        const rect = cachedRect || domElement.getBoundingClientRect();
         const clientWidth = rect.width;
         const clientHeight = rect.height;
         const videoWidth = decoder.width || 1080;
@@ -214,6 +222,7 @@ export default function WebScrcpy() {
       // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
       domElement.addEventListener("pointerdown", (e) => {
         e.preventDefault();
+        if (!cachedRect) updateRect();
         domElement.setPointerCapture(e.pointerId);
         isDragging = true;
         sendTouchEvent(e, 0 /* ACTION_DOWN */);
@@ -223,11 +232,16 @@ export default function WebScrcpy() {
         e.preventDefault();
         if (!isDragging) return;
         
-        const now = Date.now();
-        if (now - lastMoveTime < 16) return;
-        lastMoveTime = now;
-        
-        sendTouchEvent(e, 2 /* ACTION_MOVE */);
+        lastMoveEvent = e;
+        if (!moveEventPending) {
+          moveEventPending = true;
+          requestAnimationFrame(() => {
+            if (isDragging && lastMoveEvent) {
+              sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
+            }
+            moveEventPending = false;
+          });
+        }
       });
 
       domElement.addEventListener("pointerup", (e) => {
@@ -236,7 +250,10 @@ export default function WebScrcpy() {
           domElement.releasePointerCapture(e.pointerId);
         }
         isDragging = false;
-        
+        if (moveEventPending && lastMoveEvent) {
+          sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
+          moveEventPending = false;
+        }
         sendTouchEvent(e, 1 /* ACTION_UP */);
       });
 
@@ -247,6 +264,7 @@ export default function WebScrcpy() {
         }
         if (isDragging) {
           isDragging = false;
+          moveEventPending = false;
           sendTouchEvent(e, 1 /* ACTION_UP */);
         }
       });
@@ -258,7 +276,7 @@ export default function WebScrcpy() {
         if (!scrcpyRef.current || !scrcpyRef.current.controller) return;
         
         const domElement = decoder.renderer.element || decoder.renderer.canvas;
-        const rect = domElement.getBoundingClientRect();
+        const rect = cachedRect || domElement.getBoundingClientRect();
         const clientWidth = rect.width;
         const clientHeight = rect.height;
 
