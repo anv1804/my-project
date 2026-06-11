@@ -89,6 +89,7 @@ export default function WebScrcpy() {
         bitRate: 4000000,
         audio: false,
         control: true, // Cho phép điều khiển
+        tunnelForward: true, // Bắt buộc dùng forward tunnel để tránh lỗi treo kết nối qua WebUSB
       }, {
         version: "2.1.1"
       });
