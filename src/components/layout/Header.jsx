@@ -5,6 +5,7 @@ import { useLayoutStore } from "@/store/useLayoutStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { syncCoins } from "@/utils/coinService";
 import Link from "next/link";
+import NotificationDropdown from "@/components/features/NotificationDropdown";
 import { Bell, User, Search, Menu, Sun, Moon, ArrowRight, LogOut, History, MessageSquare } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -211,10 +212,7 @@ export default function Header() {
             {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         )}
-        <button className="relative p-2 text-[var(--color-binance-gray)] hover:text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 rounded-full transition-colors">
-          <Bell size={20} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[var(--color-binance-yellow)] rounded-full"></span>
-        </button>
+        <NotificationDropdown />
 
         {/* Coin Balance — click to top up */}
         {!isLoading && user && (
@@ -270,6 +268,12 @@ export default function Header() {
                   className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
                 >
                   <History size={15} className="text-[var(--color-binance-gray)]" /> Lịch sử thuê số
+                </Link>
+                <Link
+                  href="/coin-history"
+                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
+                >
+                  <History size={15} className="text-[var(--color-binance-gray)]" /> Biến động số dư
                 </Link>
                 <Link
                   href="/nap-coin"

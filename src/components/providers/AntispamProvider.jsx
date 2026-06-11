@@ -316,6 +316,14 @@ export function AntispamProvider({ children }) {
             });
           }
         } catch {}
+      } else if (response.status === 401 && url.startsWith("/api/")) {
+        // Session expired or invalid on server -> force local signout
+        import("@/store/useAuthStore").then(({ useAuthStore }) => {
+          const auth = useAuthStore.getState();
+          if (auth.user) {
+            auth.signOut();
+          }
+        });
       }
 
       return response;

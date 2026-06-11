@@ -72,8 +72,8 @@ export async function POST(request) {
   if (data?.success && data?.user_id) {
     logAction({
       userId: data.user_id, action: 'coin_topup',
-      coinsAfter: data.coins_after,
-      coinsDelta: data.coins_added,
+      coinsAfter: data.coins,
+      coinsDelta: data.coins_added || transferAmount,
       refId: reference,
       metadata: { transferAmount, bank_account: body.accountNumber, gateway: body.gateway, content: body.content },
       ip: getClientIp(request),

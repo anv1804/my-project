@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Coins, QrCode, Copy, Check, RefreshCw, CheckCircle2,
-  Clock, Wallet, Info, Zap, Building2, Hash, ChevronRight,
+  Clock, Wallet, Info, Zap, Building2, Hash, ChevronRight, MessageCircle,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { syncCoins } from "@/utils/coinService";
@@ -403,8 +403,19 @@ export default function NapCoinBox({ onSuccess } = {}) {
 
             {/* Expired footer */}
             {status === "expired" && (
-              <div className="px-5 pb-5">
-                <Button onClick={reset} className="w-full flex items-center justify-center gap-2">
+              <div className="px-5 pb-5 flex flex-col gap-2">
+                <p className="text-xs text-center text-[var(--color-binance-gray)] mb-2 px-2 leading-relaxed">
+                  Đã chuyển khoản nhưng chưa có coin?
+                </p>
+                <a
+                  href="https://t.me/anvtools_support"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-10 flex items-center justify-center gap-2 rounded-md font-semibold text-sm bg-[#24A1DE] hover:bg-[#208bc2] text-white transition-colors"
+                >
+                  <MessageCircle size={16} /> Liên hệ hỗ trợ (Telegram)
+                </a>
+                <Button onClick={reset} variant="outline" className="w-full h-10 flex items-center justify-center gap-2 border-[var(--color-binance-border)] text-[var(--color-binance-gray)] hover:text-white">
                   <RefreshCw size={15} /> Tạo đơn mới
                 </Button>
               </div>

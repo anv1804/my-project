@@ -4,6 +4,7 @@ import NextTopLoader from 'nextjs-toploader';
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import AuthInitializer from "@/components/providers/AuthInitializer";
 import { AntispamProvider } from "@/components/providers/AntispamProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { createClient } from "@/utils/supabase/server";
 import "./globals.css";
 
@@ -95,6 +96,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="vi" className="dark" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider>
           <NextTopLoader
             color="#F0B90B"
             initialPosition={0.08}
@@ -111,6 +113,7 @@ export default async function RootLayout({ children }) {
           </AntispamProvider>
           <AuthInitializer initialUser={initialUser} />
           <ToastProvider />
+        </ThemeProvider>
       </body>
     </html>
   );

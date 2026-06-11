@@ -274,9 +274,8 @@ export async function POST(request) {
     const actionName = status === 1 ? 'otp_received' : status === 2 ? 'otp_expired' : 'otp_update';
     logAction({
       userId: user.id, action: actionName,
-      coinsDelta: coinRefunded > 0 ? coinRefunded : undefined,
       refId: String(request_id),
-      metadata: { phone_number: rental.phone_number, service_name: rental.service_name, code: code || null },
+      metadata: { phone_number: rental.phone_number, service_name: rental.service_name, code: code || null, refunded: coinRefunded > 0 },
       ip, ua,
     });
 
