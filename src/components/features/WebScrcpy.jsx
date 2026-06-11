@@ -103,8 +103,7 @@ export default function WebScrcpy() {
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
       const options = new AdbScrcpyOptionsLatest({
         maxSize: 720,
-        bitRate: 2000000,
-        maxFps: 60,
+        bitRate: 4000000,
         audio: false,
         control: true, // Cho phép điều khiển
       }, {
@@ -123,15 +122,16 @@ export default function WebScrcpy() {
       if (!videoStream) {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
+      
+      // Bắt buộc dùng WebGL: Bỏ qua InsertableStream vì bộ đệm MediaStream của Chrome 
+      // sẽ tự động drop (vứt bỏ) frame nếu timestamp bị trễ, gây hiện tượng khựng/giật cục (stutter).
+      // WebGL sẽ vẽ ngay lập tức bất chấp timestamp.
       let renderer;
-      if (InsertableStreamVideoFrameRenderer.isSupported) {
-        renderer = new InsertableStreamVideoFrameRenderer();
-      } else {
-        try {
-          renderer = new WebGLVideoFrameRenderer();
-        } catch (e) {
-          renderer = new BitmapVideoFrameRenderer();
-        }
+      try {
+        renderer = new WebGLVideoFrameRenderer();
+      } catch (e) {
+        console.warn("WebGL not supported, falling back to Bitmap renderer");
+        renderer = new BitmapVideoFrameRenderer();
       }
 
       const decoder = new WebCodecsVideoDecoder({
