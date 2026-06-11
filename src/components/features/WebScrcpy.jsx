@@ -54,25 +54,32 @@ export default function WebScrcpy() {
     try {
       setIsConnecting(true);
 
-      // 1. Request USB Device
+      // 1. Lấy thiết bị
       if (!AdbDaemonWebUsbDeviceManager.BROWSER) {
         throw new Error("Trình duyệt không hỗ trợ WebUSB.");
       }
+      toast.loading("Đang yêu cầu kết nối USB...", { id: "scrcpy", duration: 30000 });
       const device = await AdbDaemonWebUsbDeviceManager.BROWSER.requestDevice();
       if (!device) {
         setIsConnecting(false);
         return;
       }
       deviceRef.current = device;
-
-      // 2. Connect ADB
+      
+      // 2. Kết nối
+      toast.loading("Đang mở kết nối thiết bị...", { id: "scrcpy", duration: 30000 });
       const connection = await device.connect();
       const credentialStore = new AdbWebCredentialStore();
-      const transport = await AdbDaemonTransport.authenticate({
+      
+      toast.loading("Vui lòng NHẤN CHO PHÉP (ALLOW) trên màn hình điện thoại nếu được hỏi...", { id: "scrcpy", duration: 30000 });
+      const authPromise = AdbDaemonTransport.authenticate({
         serial: device.serial,
         connection,
         credentialStore,
       });
+      const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Quá thời gian chờ xác nhận (15s). Vui lòng kiểm tra màn hình điện thoại.")), 15000));
+      const transport = await Promise.race([authPromise, authTimeout]);
+      
       const adb = new Adb(transport);
       adbRef.current = adb;
 
@@ -80,8 +87,8 @@ export default function WebScrcpy() {
       const model = await adb.getProp("ro.product.model");
       setDeviceModel(model.trim());
 
-      // 3. Push Scrcpy Server
-      toast.loading("Đang cài đặt server lên điện thoại...", { id: "scrcpy" });
+      // 3. Push Scrcpy server
+      toast.loading("Đang đẩy file máy chủ Scrcpy vào thiết bị...", { id: "scrcpy", duration: 30000 });
       const res = await fetch("/scrcpy-server.jar");
       const buffer = await res.arrayBuffer();
       
