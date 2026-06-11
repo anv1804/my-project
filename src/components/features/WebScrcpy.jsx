@@ -124,13 +124,14 @@ export default function WebScrcpy() {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
       
-      // Sử dụng InsertableStream để trình duyệt tự động dùng Pipeline phần cứng cho thẻ <video>
-      // Render WebGL trên Main Thread gây nghẽn nghiêm trọng (Khựng hình)
+      // Sử dụng WebGLVideoFrameRenderer để ép trình duyệt vẽ ngay lập tức (Zero Latency)
+      // Bỏ qua InsertableStream vì thẻ <video> luôn có độ trễ Jitter Buffer ~50ms
       let renderer;
-      if (InsertableStreamVideoFrameRenderer.isSupported) {
-        renderer = new InsertableStreamVideoFrameRenderer();
-      } else {
+      try {
         renderer = new WebGLVideoFrameRenderer();
+      } catch (e) {
+        console.warn("WebGL not supported, falling back to Bitmap renderer");
+        renderer = new BitmapVideoFrameRenderer();
       }
 
       const decoder = new WebCodecsVideoDecoder({
@@ -164,8 +165,7 @@ export default function WebScrcpy() {
       // 6. Handle Control Injection (Mouse/Touch/Scroll)
       // Dịch sự kiện chuột trên DOM renderer (canvas) sang tọa độ Scrcpy
       let isDragging = false;
-      let moveEventPending = false;
-      let lastMoveEvent = null;
+      let lastMoveTime = 0;
       let cachedRect = null; // Cache để chống giật (Layout Thrashing)
       
       // Lấy rect mới khi resize
@@ -231,16 +231,13 @@ export default function WebScrcpy() {
         e.preventDefault();
         if (!isDragging) return;
         
-        lastMoveEvent = e;
-        if (!moveEventPending) {
-          moveEventPending = true;
-          requestAnimationFrame(() => {
-            if (isDragging && lastMoveEvent) {
-              sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
-            }
-            moveEventPending = false;
-          });
-        }
+        // CỰC KỲ QUAN TRỌNG: Dùng performance.now() (độ chính xác micro-giây) thay vì rAF/Date.now.
+        // Giới hạn ở 8ms (125Hz). Giúp loại bỏ hoàn toàn 16ms độ trễ rAF, tạo cảm giác Zero-Latency như Native!
+        const now = performance.now();
+        if (now - lastMoveTime < 8) return; 
+        lastMoveTime = now;
+        
+        sendTouchEvent(e, 2 /* ACTION_MOVE */);
       });
 
       domElement.addEventListener("pointerup", (e) => {
