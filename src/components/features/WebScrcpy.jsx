@@ -69,8 +69,8 @@ export default function WebScrcpy() {
       adbRef.current = adb;
 
       // Get device info
-      const model = await adb.subprocess.spawnAndWaitCommand("getprop ro.product.model");
-      setDeviceModel(model.stdout.trim());
+      const model = await adb.getProp("ro.product.model");
+      setDeviceModel(model.trim());
 
       // 3. Push Scrcpy Server
       toast.loading("Đang cài đặt server lên điện thoại...", { id: "scrcpy" });
