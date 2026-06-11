@@ -73,13 +73,13 @@ export default function WebScrcpy() {
       const connection = await device.connect();
       const credentialStore = new AdbWebCredentialStore();
       
-      toast.loading("Vui lòng NHẤN CHO PHÉP (ALLOW) trên màn hình điện thoại nếu được hỏi...", { id: "scrcpy", duration: 30000 });
+      toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và NHẤN CHO PHÉP (ALLOW) nếu được hỏi...", { id: "scrcpy", duration: 60000 });
       const authPromise = AdbDaemonTransport.authenticate({
         serial: device.serial,
         connection,
         credentialStore,
       });
-      const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Quá thời gian chờ xác nhận (15s). Vui lòng kiểm tra màn hình điện thoại.")), 15000));
+      const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Quá thời gian chờ xác nhận (60s). Vui lòng RÚT CÁP RA CẮM LẠI và mở khóa màn hình điện thoại để bấm CHO PHÉP.")), 60000));
       const transport = await Promise.race([authPromise, authTimeout]);
       
       const adb = new Adb(transport);
