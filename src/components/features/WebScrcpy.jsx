@@ -17,6 +17,7 @@ export default function WebScrcpy() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [deviceModel, setDeviceModel] = useState("");
   const [debugInfo, setDebugInfo] = useState("");
+  const [videoElement, setVideoElement] = useState(null);
   const containerRef = useRef(null);
 
   // Update debug info periodically
@@ -30,6 +31,14 @@ export default function WebScrcpy() {
     return () => clearInterval(interval);
   }, [isConnected]);
 
+  // Append video element to DOM when ready
+  useEffect(() => {
+    if (isConnected && containerRef.current && videoElement) {
+      containerRef.current.innerHTML = "";
+      containerRef.current.appendChild(videoElement);
+    }
+  }, [isConnected, videoElement]);
+
   // refs for cleanup
   const adbRef = useRef(null);
   const scrcpyRef = useRef(null);
@@ -42,6 +51,7 @@ export default function WebScrcpy() {
       if (adbRef.current) await adbRef.current.close();
       if (decoderRef.current) decoderRef.current.dispose();
       if (containerRef.current) containerRef.current.innerHTML = "";
+      setVideoElement(null);
     } catch (err) {
       console.error(err);
     }
@@ -127,23 +137,23 @@ export default function WebScrcpy() {
       });
       decoderRef.current = decoder;
       
-      if (containerRef.current) {
-        const domElement = renderer.element || renderer.canvas;
-        containerRef.current.appendChild(domElement);
-        // Style the renderer (canvas) to fit nicely
-        domElement.style.position = "absolute";
-        domElement.style.top = "0";
-        domElement.style.left = "0";
-        domElement.style.width = "100%";
-        domElement.style.height = "100%";
-        domElement.style.objectFit = "contain";
-        domElement.style.borderRadius = "0.5rem";
-        
-        // Force play if it's a video element (fixes autoplay issues)
-        if (domElement instanceof HTMLVideoElement) {
-          domElement.play().catch(e => console.error("Play error:", e));
-        }
+      const domElement = renderer.element || renderer.canvas;
+      
+      // Style the renderer (canvas) to fit nicely
+      domElement.style.position = "absolute";
+      domElement.style.top = "0";
+      domElement.style.left = "0";
+      domElement.style.width = "100%";
+      domElement.style.height = "100%";
+      domElement.style.objectFit = "contain";
+      domElement.style.borderRadius = "0.5rem";
+      
+      // Force play if it's a video element (fixes autoplay issues)
+      if (domElement instanceof HTMLVideoElement) {
+        domElement.play().catch(e => console.error("Play error:", e));
       }
+      
+      setVideoElement(domElement);
 
       videoStream.stream.pipeTo(decoder.writable).catch(console.error);
 
@@ -152,7 +162,6 @@ export default function WebScrcpy() {
       // Đoạn này basic support click/swipe
       let isDragging = false;
 
-      const domElement = renderer.element || renderer.canvas;
       domElement.addEventListener("mousedown", (e) => {
         isDragging = true;
         sendTouchEvent(e, 0 /* ACTION_DOWN */);
