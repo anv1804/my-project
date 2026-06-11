@@ -104,9 +104,9 @@ export default function WebScrcpy() {
       // 5. Start Scrcpy
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
       const options = new AdbScrcpyOptionsLatest({
-        maxSize: useSoftwareDecoder ? 480 : 720,
-        bitRate: useSoftwareDecoder ? 1500000 : 4000000,
-        maxFps: useSoftwareDecoder ? 30 : 60,
+        maxSize: 1080,
+        bitRate: 8000000,
+        maxFps: 60,
         videoEncoder: useSoftwareDecoder ? "OMX.google.h264.encoder" : undefined, // Force Android Software Encoder for 100% compatibility
         audio: false,
         control: true, // Cho phép điều khiển
