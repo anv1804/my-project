@@ -23,6 +23,57 @@ const formatCoin = (num) => {
   return new Intl.NumberFormat("vi-VN").format(Math.round(num * 2)) + " coin";
 };
 
+// Phát hiện nhà mạng từ số điện thoại
+function detectCarrier(phoneNumber, countryCode) {
+  if (!phoneNumber) return null;
+  // Chuẩn hoá: bỏ country code, lấy 10 chữ số trong nước
+  const raw = String(phoneNumber).replace(/\D/g, "");
+  // Với VN (84): đầu số 10 chữ số bắt đầu 0, hoặc 9 chữ số không 0
+  // Thường phone_number trả về dạng "84xxxxxxxxx" hoặc "0xxxxxxxxx" hoặc "xxxxxxxxx"
+  let local = raw;
+  if (countryCode && raw.startsWith(String(countryCode).replace("+", ""))) {
+    local = "0" + raw.slice(String(countryCode).replace("+", "").length);
+  }
+  if (!local.startsWith("0") && local.length === 9) local = "0" + local;
+
+  // ── Việt Nam ──────────────────────────────────────────────────────────────
+  if (!countryCode || countryCode === "84" || countryCode === "+84") {
+    const pre3 = local.slice(0, 3); // 03x, 05x...
+    const pre4 = local.slice(0, 4); // 0322...
+
+    const viettel = ["032","033","034","035","036","037","038","039","086","096","097","098"];
+    const mobifone = ["070","072","073","074","075","076","077","078","079","089","090","093"];
+    const vinaphone = ["081","082","083","084","085","088","091","094"];
+    const vietnamobile = ["052","056","058","092"];
+    const gmobile = ["059","099"];
+    const reddi = ["055"];
+    const itelecom = ["087"];
+
+    if (viettel.includes(pre3))      return { name: "Viettel",      color: "#e53935", bg: "bg-red-500/10",    border: "border-red-500/30",    text: "text-red-400" };
+    if (mobifone.includes(pre3))     return { name: "Mobifone",     color: "#1e88e5", bg: "bg-blue-500/10",   border: "border-blue-500/30",   text: "text-blue-400" };
+    if (vinaphone.includes(pre3))    return { name: "Vinaphone",    color: "#43a047", bg: "bg-green-500/10",  border: "border-green-500/30",  text: "text-green-400" };
+    if (vietnamobile.includes(pre3)) return { name: "Vietnamobile", color: "#fb8c00", bg: "bg-orange-500/10", border: "border-orange-500/30", text: "text-orange-400" };
+    if (gmobile.includes(pre3))      return { name: "Gmobile",      color: "#8e24aa", bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-400" };
+    if (reddi.includes(pre3))        return { name: "Reddi",        color: "#00acc1", bg: "bg-cyan-500/10",   border: "border-cyan-500/30",   text: "text-cyan-400" };
+    if (itelecom.includes(pre3))     return { name: "Indochina",    color: "#6d4c41", bg: "bg-stone-500/10",  border: "border-stone-500/30",  text: "text-stone-400" };
+  }
+
+  // ── Lào (856) ─────────────────────────────────────────────────────────────
+  if (countryCode === "856" || countryCode === "+856") {
+    const pre = local.slice(0, 4);
+    if (["020"].includes(local.slice(0,3))) {
+      const d4 = local.slice(0, 5);
+      if (["02054","02055"].includes(d4)) return { name: "Unitel",   color: "#e53935", bg: "bg-red-500/10",    border: "border-red-500/30",    text: "text-red-400" };
+      if (["02058","02059"].includes(d4)) return { name: "LaoTel",   color: "#1e88e5", bg: "bg-blue-500/10",   border: "border-blue-500/30",   text: "text-blue-400" };
+      if (["02077","02078"].includes(d4)) return { name: "ETL",      color: "#43a047", bg: "bg-green-500/10",  border: "border-green-500/30",  text: "text-green-400" };
+      if (["02091","02092"].includes(d4)) return { name: "Beeline",  color: "#fb8c00", bg: "bg-orange-500/10", border: "border-orange-500/30", text: "text-orange-400" };
+    }
+  }
+
+  return null;
+}
+
+
 // Brand icon using local image files
 const BrandIcon = ({ name, className = "w-4.5 h-4.5 rounded-sm object-contain" }) => {
   const n = name?.toLowerCase();
@@ -810,6 +861,7 @@ export default function OtpRentBox() {
               const isExpired = rental.status === 2 || (isWaiting && remaining === 0);
               const isPhoneCopied = copiedText === rental.phone_number;
               const isCodeCopied = copiedText === rental.code;
+              const carrier = detectCarrier(rental.phone_number, rental.countryCode);
 
               const borderColor = isCompleted ? "#22c55e" : isExpired ? "#4b5563" : "#f0b90b";
               const bgGlow = isCompleted ? "bg-green-500/[0.04]" : isExpired ? "" : "bg-yellow-500/[0.03]";
@@ -835,11 +887,19 @@ export default function OtpRentBox() {
                         {/* Service name + meta */}
                         <div className="min-w-0">
                           <div className="text-sm font-bold text-[var(--color-binance-light)] leading-snug truncate" title={rental.service_name}>{rental.service_name}</div>
-                          <div className="flex items-center gap-1 mt-0.5">
+                          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                             <Globe size={9} className="text-blue-400 shrink-0" />
                             <span className="text-[10px] font-semibold text-[var(--color-binance-gray)]">{rental.countryISO?.toUpperCase()}</span>
                             <span className="text-[10px] text-[var(--color-binance-gray)]/40">·</span>
                             <span className="text-[10px] text-[var(--color-binance-yellow)] font-mono whitespace-nowrap">{formatCoin(rental.price)}</span>
+                            {carrier && (
+                              <>
+                                <span className="text-[10px] text-[var(--color-binance-gray)]/40">·</span>
+                                <span className={`inline-flex items-center px-1.5 py-0 rounded text-[9px] font-bold tracking-wide ${carrier.bg} ${carrier.border} ${carrier.text} border`}>
+                                  {carrier.name}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
