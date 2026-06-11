@@ -136,7 +136,6 @@ export default function WebScrcpy() {
 
       const decoder = new WebCodecsVideoDecoder({
         codec: videoStream.metadata.codec,
-        hardwareAcceleration: "prefer-hardware",
         renderer,
       });
       decoderRef.current = decoder;
