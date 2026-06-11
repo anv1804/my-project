@@ -169,6 +169,7 @@ export default function WebScrcpy() {
       // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
       domElement.addEventListener("pointerdown", (e) => {
         e.preventDefault();
+        domElement.setPointerCapture(e.pointerId);
         isDragging = true;
         sendTouchEvent(e, 0 /* ACTION_DOWN */);
       });
@@ -181,12 +182,18 @@ export default function WebScrcpy() {
 
       domElement.addEventListener("pointerup", (e) => {
         e.preventDefault();
+        if (domElement.hasPointerCapture(e.pointerId)) {
+          domElement.releasePointerCapture(e.pointerId);
+        }
         isDragging = false;
         sendTouchEvent(e, 1 /* ACTION_UP */);
       });
 
-      domElement.addEventListener("pointerleave", (e) => {
+      domElement.addEventListener("pointercancel", (e) => {
         e.preventDefault();
+        if (domElement.hasPointerCapture(e.pointerId)) {
+          domElement.releasePointerCapture(e.pointerId);
+        }
         if (isDragging) {
           isDragging = false;
           sendTouchEvent(e, 1 /* ACTION_UP */);
