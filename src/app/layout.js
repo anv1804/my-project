@@ -95,6 +95,9 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="vi" className="dark" suppressHydrationWarning>
+      <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9261091305105087" crossOrigin="anonymous"></script>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
           <NextTopLoader
