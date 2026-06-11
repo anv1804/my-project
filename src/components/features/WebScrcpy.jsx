@@ -9,7 +9,7 @@ import { Adb, AdbDaemonTransport } from "@yume-chan/adb";
 import AdbWebCredentialStore from "@yume-chan/adb-credential-web";
 import { AdbDaemonWebUsbDeviceManager } from "@yume-chan/adb-daemon-webusb";
 import { AdbScrcpyClient, AdbScrcpyOptionsLatest } from "@yume-chan/adb-scrcpy";
-import { WebCodecsVideoDecoder, InsertableStreamVideoFrameRenderer, WebGLVideoFrameRenderer } from "@yume-chan/scrcpy-decoder-webcodecs";
+import { WebCodecsVideoDecoder, InsertableStreamVideoFrameRenderer, WebGLVideoFrameRenderer, BitmapVideoFrameRenderer } from "@yume-chan/scrcpy-decoder-webcodecs";
 import { Consumable, WritableStream } from "@yume-chan/stream-extra";
 
 export default function WebScrcpy() {
@@ -107,8 +107,13 @@ export default function WebScrcpy() {
       if (!videoStream) {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
-      // Force WebGL renderer as InsertableStream often yields a black screen without user interaction
-      const renderer = new WebGLVideoFrameRenderer();
+      let renderer;
+      try {
+        renderer = new WebGLVideoFrameRenderer();
+      } catch (e) {
+        console.warn("WebGL not supported, falling back to Bitmap renderer");
+        renderer = new BitmapVideoFrameRenderer();
+      }
 
       const decoder = new WebCodecsVideoDecoder({
         codec: videoStream.metadata.codec,
