@@ -107,12 +107,8 @@ export default function WebScrcpy() {
       if (!videoStream) {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
-      let renderer;
-      if (InsertableStreamVideoFrameRenderer.isSupported) {
-        renderer = new InsertableStreamVideoFrameRenderer();
-      } else {
-        renderer = new WebGLVideoFrameRenderer();
-      }
+      // Force WebGL renderer as InsertableStream often yields a black screen without user interaction
+      const renderer = new WebGLVideoFrameRenderer();
 
       const decoder = new WebCodecsVideoDecoder({
         codec: videoStream.metadata.codec,
@@ -177,8 +173,8 @@ export default function WebScrcpy() {
         const clientHeight = rect.height;
 
         // Tọa độ gốc của video
-        const videoWidth = decoder.videoWidth || 1080;
-        const videoHeight = decoder.videoHeight || 1920;
+        const videoWidth = decoder.width || 1080;
+        const videoHeight = decoder.height || 1920;
 
         // Tính toán object-fit: contain
         const videoRatio = videoWidth / videoHeight;
@@ -215,6 +211,8 @@ export default function WebScrcpy() {
           pointerId: 0n,
           pointerX,
           pointerY,
+          videoWidth,
+          videoHeight,
           pressure: action === 1 ? 0 : 1,
           actionButton: 1, // BUTTON_PRIMARY
           buttons: 1,
