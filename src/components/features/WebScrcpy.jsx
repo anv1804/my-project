@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Smartphone, MonitorPlay, XCircle, Loader2, Volume1, Volume2, Power } from "lucide-react";
+import { Smartphone, MonitorPlay, XCircle, Loader2, Volume1, Volume2, Power, ClipboardPaste } from "lucide-react";
 import toast from "react-hot-toast";
 
 // Yume-chan packages
@@ -452,6 +452,41 @@ export default function WebScrcpy() {
     }
   };
 
+  // Lắng nghe sự kiện PASTE (Ctrl+V) từ bàn phím để truyền vào điện thoại
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      // Bỏ qua nếu user đang gõ vào một ô input trên giao diện Web (ví dụ: ô tìm kiếm quốc gia)
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.isContentEditable
+      ) {
+        return;
+      }
+      
+      if (!scrcpyRef.current?.controller) return;
+
+      const text = e.clipboardData?.getData("text/plain");
+      if (text) {
+        e.preventDefault();
+        try {
+          await scrcpyRef.current.controller.setClipboard({
+            sequence: BigInt(Date.now()),
+            paste: true, // true = set clipboard và tự động dán luôn
+            content: text,
+          });
+          toast.success("Đã dán văn bản vào điện thoại!", { id: "scrcpy-paste" });
+        } catch (err) {
+          console.error("Lỗi Paste:", err);
+          toast.error("Không thể dán vào điện thoại", { id: "scrcpy-paste" });
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
+
   useEffect(() => {
     return () => disconnect();
   }, []);
@@ -556,10 +591,35 @@ export default function WebScrcpy() {
               >
                 <Volume2 size={18} />
               </button>
+              <div className="w-px h-4 bg-[var(--color-binance-border)] mx-1" />
+              <button 
+                onClick={async () => {
+                  if (!scrcpyRef.current?.controller) return;
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    if (!text) {
+                      toast.error("Bộ nhớ tạm đang trống!", { id: "scrcpy-paste" });
+                      return;
+                    }
+                    await scrcpyRef.current.controller.setClipboard({
+                      sequence: BigInt(Date.now()),
+                      paste: true,
+                      content: text,
+                    });
+                    toast.success("Đã đồng bộ & Dán vào điện thoại!", { id: "scrcpy-paste" });
+                  } catch (e) {
+                    toast.error("Trình duyệt chặn đọc Clipboard. Hãy dùng Ctrl+V!", { id: "scrcpy-paste" });
+                  }
+                }} 
+                className="p-2 rounded hover:bg-white/10 text-[var(--color-binance-yellow)] hover:text-white transition-colors cursor-pointer" 
+                title="Dán từ Máy tính (Ctrl+V)"
+              >
+                <ClipboardPaste size={18} />
+              </button>
               <button 
                 onClick={() => injectKey(26)} 
-                className="p-2 rounded hover:bg-white/10 text-[var(--color-binance-gray)] hover:text-white transition-colors cursor-pointer" 
-                title="Nguồn (Tắt/Mở màn hình)"
+                className="p-2 rounded hover:bg-white/10 text-red-400 hover:text-red-300 transition-colors cursor-pointer ml-1" 
+                title="Tắt/Bật màn hình (Nguồn)"
               >
                 <Power size={18} />
               </button>
