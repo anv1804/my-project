@@ -170,20 +170,13 @@ export default function WebScrcpy() {
       // Dịch sự kiện chuột trên DOM renderer (canvas) sang tọa độ Scrcpy
       let isDragging = false;
       let lastMoveTime = 0;
-      let cachedRect = null; // Cache để chống giật (Layout Thrashing)
       
-      // Lấy rect mới khi resize
-      const updateRect = () => { cachedRect = domElement.getBoundingClientRect(); };
-      window.addEventListener("resize", updateRect);
-      // Đợi DOM render xong để lấy Rect chuẩn
-      setTimeout(updateRect, 500);
-
       // Xử lý Lăn Chuột / Vuốt Touchpad (CỰC KỲ QUAN TRỌNG ĐỂ HẾT LAG KHI CUỘN)
       domElement.addEventListener("wheel", (e) => {
         e.preventDefault();
         if (!scrcpyRef.current || !scrcpyRef.current.controller) return;
 
-        const rect = cachedRect || domElement.getBoundingClientRect();
+        const rect = domElement.getBoundingClientRect();
         const clientWidth = rect.width;
         const clientHeight = rect.height;
         const videoWidth = decoder.width || 1080;
@@ -225,7 +218,6 @@ export default function WebScrcpy() {
       // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
       domElement.addEventListener("pointerdown", (e) => {
         e.preventDefault();
-        if (!cachedRect) updateRect();
         domElement.setPointerCapture(e.pointerId);
         isDragging = true;
         sendTouchEvent(e, 0 /* ACTION_DOWN */);
@@ -270,8 +262,7 @@ export default function WebScrcpy() {
       function sendTouchEvent(e, action) {
         if (!scrcpyRef.current || !scrcpyRef.current.controller) return;
         
-        const domElement = decoder.renderer.element || decoder.renderer.canvas;
-        const rect = cachedRect || domElement.getBoundingClientRect();
+        const rect = domElement.getBoundingClientRect();
         const clientWidth = rect.width;
         const clientHeight = rect.height;
 
