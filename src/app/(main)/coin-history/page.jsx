@@ -239,7 +239,7 @@ export default function CoinHistoryPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
-                        <div className={`flex items-center justify-end gap-1 ${isPositive ? "text-[var(--color-binance-success)]" : "text-red-400"}`}>
+                        <div className={`flex items-center justify-end gap-1 ${log.action === "coin_refund" ? "text-[var(--color-binance-yellow)]" : isPositive ? "text-[var(--color-binance-success)]" : "text-red-400"}`}>
                           {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                           {isPositive ? "+" : ""}{new Intl.NumberFormat("vi-VN").format(log.coins_delta)}
                         </div>
