@@ -27,18 +27,24 @@ export default function WebScrcpy() {
       containerRef.current.appendChild(videoElement);
     }
   }, [isConnected, videoElement]);
-
   // refs for cleanup
   const adbRef = useRef(null);
   const scrcpyRef = useRef(null);
   const decoderRef = useRef(null);
   const deviceRef = useRef(null);
+  const credentialStoreRef = useRef(null);
 
   const disconnect = async () => {
     try {
-      if (scrcpyRef.current) await scrcpyRef.current.close();
-      if (adbRef.current) await adbRef.current.close();
-      if (decoderRef.current) decoderRef.current.dispose();
+      if (scrcpyRef.current) {
+        try { await scrcpyRef.current.close(); } catch (e) { console.error("Scrcpy close error", e); }
+      }
+      if (adbRef.current) {
+        try { await adbRef.current.close(); } catch (e) { console.error("Adb close error", e); }
+      }
+      if (decoderRef.current) {
+        try { decoderRef.current.dispose(); } catch (e) { console.error("Decoder dispose error", e); }
+      }
       if (containerRef.current) containerRef.current.innerHTML = "";
       setVideoElement(null);
     } catch (err) {
@@ -56,6 +62,11 @@ export default function WebScrcpy() {
     try {
       setIsConnecting(true);
 
+      // Initialize credential store once
+      if (!credentialStoreRef.current) {
+        credentialStoreRef.current = new AdbWebCredentialStore();
+      }
+
       // 1. Lấy thiết bị
       if (!AdbDaemonWebUsbDeviceManager.BROWSER) {
         throw new Error("Trình duyệt không hỗ trợ WebUSB.");
@@ -71,13 +82,12 @@ export default function WebScrcpy() {
       // 2. Kết nối
       toast.loading("Đang mở kết nối thiết bị...", { id: "scrcpy", duration: 30000 });
       const connection = await device.connect();
-      const credentialStore = new AdbWebCredentialStore();
       
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và NHẤN CHO PHÉP (ALLOW) nếu được hỏi...", { id: "scrcpy", duration: 60000 });
       const authPromise = AdbDaemonTransport.authenticate({
         serial: device.serial,
         connection,
-        credentialStore,
+        credentialStore: credentialStoreRef.current,
       });
       const authTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Quá thời gian chờ xác nhận (60s). Vui lòng RÚT CÁP RA CẮM LẠI và mở khóa màn hình điện thoại để bấm CHO PHÉP.")), 60000));
       const transport = await Promise.race([authPromise, authTimeout]);
