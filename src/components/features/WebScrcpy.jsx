@@ -238,12 +238,14 @@ export default function WebScrcpy() {
         const x = e.clientX - rect.left - offsetX;
         const y = e.clientY - rect.top - offsetY;
 
-        // Bỏ qua nếu click ngoài vùng video
-        if (x < 0 || x > renderWidth || y < 0 || y > renderHeight) return;
+        // Tránh return sớm làm mất tín hiệu nhả chuột (ACTION_UP) khi vuốt ra ngoài mép
+        // Thay vào đó, giới hạn tọa độ ở mép viền video (Clamp)
+        const clampedX = Math.max(0, Math.min(x, renderWidth));
+        const clampedY = Math.max(0, Math.min(y, renderHeight));
 
-        // Tọa độ Scrcpy chuẩn hóa (0-1)
-        const pointerX = Math.round((x / renderWidth) * videoWidth);
-        const pointerY = Math.round((y / renderHeight) * videoHeight);
+        // Tọa độ Scrcpy chuẩn hóa
+        const pointerX = Math.round((clampedX / renderWidth) * videoWidth);
+        const pointerY = Math.round((clampedY / renderHeight) * videoHeight);
 
         scrcpyRef.current.controller.injectTouch({
           action,
