@@ -124,17 +124,15 @@ export default function WebScrcpy() {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
       
-      // Bắt buộc dùng InsertableStreamVideoFrameRenderer để vẽ bằng GPU phần cứng (Card màn hình)
-      // Không được dùng WebGL trên Main Thread vì nó sẽ gây giật lag trình duyệt cực nặng
+      // Bắt buộc dùng WebGL để đảm bảo tương thích 100% trên mọi máy tính và môi trường Production.
+      // InsertableStream (Native Video) thường xuyên gây lỗi "EncodingError" hoặc "OperationError" 
+      // trên các máy tính thiếu cờ bảo mật COOP/COEP hoặc không hỗ trợ Pipeline phần cứng.
       let renderer;
-      if (InsertableStreamVideoFrameRenderer.isSupported) {
-        renderer = new InsertableStreamVideoFrameRenderer();
-      } else {
-        try {
-          renderer = new WebGLVideoFrameRenderer();
-        } catch (e) {
-          renderer = new BitmapVideoFrameRenderer();
-        }
+      try {
+        renderer = new WebGLVideoFrameRenderer();
+      } catch (e) {
+        console.warn("WebGL not supported, falling back to Bitmap renderer");
+        renderer = new BitmapVideoFrameRenderer();
       }
 
       const decoder = new WebCodecsVideoDecoder({
