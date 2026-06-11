@@ -91,7 +91,7 @@ export default function WebScrcpy() {
 
       // 3. Push Scrcpy server
       toast.loading("Đang đẩy file máy chủ Scrcpy vào thiết bị...", { id: "scrcpy", duration: 30000 });
-      const res = await fetch("/scrcpy-server.jar");
+      const res = await fetch("/scrcpy-server.jar?v=3.3.3");
       const buffer = await res.arrayBuffer();
       
       const sync = await adb.sync();
@@ -111,7 +111,7 @@ export default function WebScrcpy() {
         audio: false,
         control: true, // Cho phép điều khiển
       }, {
-        version: "3.1" // Khớp với phiên bản server vừa download
+        version: "3.3.3" // Khôi phục lại 3.3.3 (phiên bản custom của Yume-chan)
       });
       
       // Start Scrcpy with a 15-second timeout
