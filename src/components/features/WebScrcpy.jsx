@@ -163,10 +163,11 @@ export default function WebScrcpy() {
 
       // 6. Handle Control Injection (Mouse/Touch)
       // Dịch sự kiện chuột trên DOM renderer (canvas) sang tọa độ Scrcpy
-      // Đoạn này basic support click/swipe
-      let isDragging = false;
-
       // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
+      let isDragging = false;
+      let moveEventPending = false;
+      let lastMoveEvent = null;
+
       domElement.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         domElement.setPointerCapture(e.pointerId);
@@ -177,7 +178,20 @@ export default function WebScrcpy() {
       domElement.addEventListener("pointermove", (e) => {
         e.preventDefault();
         if (!isDragging) return;
-        sendTouchEvent(e, 2 /* ACTION_MOVE */);
+        
+        // Cực kỳ quan trọng: Chuột gaming/touchpad báo cáo tọa độ hàng trăm lần mỗi giây.
+        // Gửi toàn bộ qua WebUSB sẽ làm nghẽn cổ chai luồng truyền tải, gây ra hiện tượng khựng (stutter/lag).
+        // Giải pháp: Gom các sự kiện di chuyển và chỉ gửi 1 lần mỗi khung hình (60fps) thông qua requestAnimationFrame.
+        lastMoveEvent = e;
+        if (!moveEventPending) {
+          moveEventPending = true;
+          requestAnimationFrame(() => {
+            if (isDragging && lastMoveEvent) {
+              sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
+            }
+            moveEventPending = false;
+          });
+        }
       });
 
       domElement.addEventListener("pointerup", (e) => {
@@ -186,6 +200,13 @@ export default function WebScrcpy() {
           domElement.releasePointerCapture(e.pointerId);
         }
         isDragging = false;
+        
+        // Đẩy nốt sự kiện di chuyển cuối cùng nếu đang bị giữ lại
+        if (moveEventPending && lastMoveEvent) {
+          sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
+          moveEventPending = false;
+        }
+        
         sendTouchEvent(e, 1 /* ACTION_UP */);
       });
 
@@ -196,6 +217,7 @@ export default function WebScrcpy() {
         }
         if (isDragging) {
           isDragging = false;
+          moveEventPending = false; // Xóa hàng đợi
           sendTouchEvent(e, 1 /* ACTION_UP */);
         }
       });
