@@ -5,7 +5,8 @@ import { Smartphone, MonitorPlay, XCircle, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 // Yume-chan packages
-import { Adb } from "@yume-chan/adb";
+import { Adb, AdbDaemonTransport } from "@yume-chan/adb";
+import AdbWebCredentialStore from "@yume-chan/adb-credential-web";
 import { AdbDaemonWebUsbDeviceManager } from "@yume-chan/adb-daemon-webusb";
 import { ScrcpyOptions2_1 } from "@yume-chan/scrcpy";
 import { AdbScrcpyClient } from "@yume-chan/adb-scrcpy";
@@ -58,7 +59,13 @@ export default function WebScrcpy() {
 
       // 2. Connect ADB
       const connection = await device.connect();
-      const adb = await Adb.create(connection);
+      const credentialStore = new AdbWebCredentialStore();
+      const transport = await AdbDaemonTransport.authenticate({
+        serial: device.serial,
+        connection,
+        credentialStore,
+      });
+      const adb = new Adb(transport);
       adbRef.current = adb;
 
       // Get device info
