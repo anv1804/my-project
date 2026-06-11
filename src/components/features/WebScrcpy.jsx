@@ -204,7 +204,14 @@ export default function WebScrcpy() {
       setIsConnected(true);
     } catch (err) {
       console.error(err);
-      toast.error(`Lỗi: ${err.message}`, { id: "scrcpy" });
+      if (err.message?.includes("already in use") || err.message?.includes("busy")) {
+        toast.error(
+          "Lỗi: Thiết bị đang bị phần mềm khác chiếm giữ!\n\nVui lòng đóng các tab web khác đang dùng USB, hoặc tắt phần mềm ADB trên máy (adb kill-server) rồi cắm lại cáp.",
+          { id: "scrcpy", duration: 8000 }
+        );
+      } else {
+        toast.error(`Lỗi: ${err.message}`, { id: "scrcpy" });
+      }
       disconnect();
     } finally {
       setIsConnecting(false);
