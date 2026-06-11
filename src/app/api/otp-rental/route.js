@@ -78,7 +78,8 @@ export async function POST(request) {
   const ip = getClientIp(request);
   const ua = request.headers.get('user-agent') || '';
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return NextResponse.json({ success: false }, { status: 401 });
 
   const body = await request.json().catch(() => null);

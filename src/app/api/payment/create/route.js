@@ -29,11 +29,11 @@ export async function POST(request) {
 
     const supabase = await createClient();
 
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData?.user) {
+    const { data: authData, error: authError } = await supabase.auth.getSession();
+    if (authError || !authData?.session?.user) {
       return NextResponse.json({ success: false, message: 'Chưa đăng nhập' }, { status: 401 });
     }
-    const user = authData.user;
+    const user = authData.session.user;
 
     let body;
     try {

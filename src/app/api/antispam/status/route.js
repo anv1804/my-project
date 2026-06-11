@@ -14,8 +14,8 @@ export async function GET(request) {
     const now = new Date().toISOString();
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id || null;
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id || null;
 
     const admin = createAdminClient();
 

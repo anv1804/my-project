@@ -25,7 +25,8 @@ export async function GET(request) {
 // POST /api/forum — Đăng bài mới (cookie-based auth, không cần Bearer token)
 export async function POST(request) {
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+  const user = session?.user;
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Kiểm tra spam ban
