@@ -74,16 +74,17 @@ export default function WebScrcpy() {
       // 3. Push Scrcpy Server
       toast.loading("Đang cài đặt server lên điện thoại...", { id: "scrcpy" });
       const res = await fetch("/scrcpy-server.jar");
+      const buffer = await res.arrayBuffer();
       
       const sync = await adb.sync();
       await sync.write({
         filename: "/data/local/tmp/scrcpy-server.jar",
-        file: res.body,
+        file: new Blob([buffer]).stream(),
       });
       sync.dispose();
 
       // 4. Start Scrcpy
-      toast.loading("Đang khởi động Scrcpy...", { id: "scrcpy" });
+      toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
       const options = new AdbScrcpyOptions2_1({
         maxSize: 1080,
         bitRate: 4000000,
