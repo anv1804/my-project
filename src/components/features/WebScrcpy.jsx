@@ -89,6 +89,8 @@ export default function WebScrcpy() {
         bitRate: 4000000,
         audio: false,
         control: true, // Cho phép điều khiển
+      }, {
+        version: "2.1.1"
       });
       
       const scrcpy = await AdbScrcpyClient.start(adb, "/data/local/tmp/scrcpy-server.jar", options);
@@ -208,7 +210,11 @@ export default function WebScrcpy() {
       toast.success("Kết nối thành công!", { id: "scrcpy" });
       setIsConnected(true);
     } catch (err) {
-      console.error(err);
+      console.error("Scrcpy Error:", err);
+      if (err.output) {
+        console.error("Server output:", err.output.join("\n"));
+        toast.error(`Server crash: ${err.output[err.output.length - 1] || "Xem console"}`, { id: "scrcpy" });
+      }
       if (err.message?.includes("already in use") || err.message?.includes("busy")) {
         toast.error(
           "Lỗi: Thiết bị đang bị phần mềm khác chiếm giữ!\n\nVui lòng đóng các tab web khác đang dùng USB, hoặc tắt phần mềm ADB trên máy (adb kill-server) rồi cắm lại cáp.",
