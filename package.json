@@ -11,6 +11,11 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
+    "@yume-chan/adb": "^2.6.0",
+    "@yume-chan/adb-daemon-webusb": "^2.3.2",
+    "@yume-chan/adb-scrcpy": "^2.3.2",
+    "@yume-chan/scrcpy": "^2.3.0",
+    "@yume-chan/scrcpy-decoder-webcodecs": "^2.5.3",
     "clsx": "^2.1.1",
     "headroom-ai": "^0.22.4",
     "lucide-react": "^1.17.0",

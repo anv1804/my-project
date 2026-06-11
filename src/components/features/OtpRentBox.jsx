@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, startTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import OtpHistoryBox from "./OtpHistoryBox";
+import WebScrcpy from "./WebScrcpy";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import toast from "react-hot-toast";
@@ -817,6 +818,9 @@ export default function OtpRentBox() {
                 </div>
               </div>
             </div>
+            
+            {/* Scrcpy Screen Mirroring */}
+            <WebScrcpy />
           </div>
 
         </div>
