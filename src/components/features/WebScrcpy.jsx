@@ -166,27 +166,35 @@ export default function WebScrcpy() {
       // Đoạn này basic support click/swipe
       let isDragging = false;
 
-      domElement.addEventListener("mousedown", (e) => {
+      // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
+      domElement.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
         isDragging = true;
         sendTouchEvent(e, 0 /* ACTION_DOWN */);
       });
 
-      domElement.addEventListener("mousemove", (e) => {
+      domElement.addEventListener("pointermove", (e) => {
+        e.preventDefault();
         if (!isDragging) return;
         sendTouchEvent(e, 2 /* ACTION_MOVE */);
       });
 
-      domElement.addEventListener("mouseup", (e) => {
+      domElement.addEventListener("pointerup", (e) => {
+        e.preventDefault();
         isDragging = false;
         sendTouchEvent(e, 1 /* ACTION_UP */);
       });
 
-      domElement.addEventListener("mouseleave", (e) => {
+      domElement.addEventListener("pointerleave", (e) => {
+        e.preventDefault();
         if (isDragging) {
           isDragging = false;
           sendTouchEvent(e, 1 /* ACTION_UP */);
         }
       });
+      
+      // Prevent context menu
+      domElement.addEventListener("contextmenu", (e) => e.preventDefault());
 
       function sendTouchEvent(e, action) {
         if (!scrcpyRef.current || !scrcpyRef.current.controller) return;
