@@ -322,6 +322,7 @@ export default function WebScrcpy() {
       // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
       domElement.addEventListener("pointerdown", (e) => {
         e.preventDefault();
+        containerRef.current?.parentElement?.focus();
         
         // Chuột phải (button === 2) => Nút Back
         if (e.button === 2) {
@@ -452,40 +453,82 @@ export default function WebScrcpy() {
     }
   };
 
-  // Lắng nghe sự kiện PASTE (Ctrl+V) từ bàn phím để truyền vào điện thoại
-  useEffect(() => {
-    const handlePaste = async (e) => {
-      // Bỏ qua nếu user đang gõ vào một ô input trên giao diện Web (ví dụ: ô tìm kiếm quốc gia)
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA" ||
-        document.activeElement?.isContentEditable
-      ) {
-        return;
-      }
-      
-      if (!scrcpyRef.current?.controller) return;
+  // Xử lý PASTE (Ctrl+V) vào điện thoại
+  const handlePaste = async (e) => {
+    if (
+      document.activeElement?.tagName === "INPUT" ||
+      document.activeElement?.tagName === "TEXTAREA" ||
+      document.activeElement?.isContentEditable
+    ) {
+      return;
+    }
+    
+    if (!scrcpyRef.current?.controller) return;
 
-      const text = e.clipboardData?.getData("text/plain");
-      if (text) {
+    const text = e.clipboardData?.getData("text/plain");
+    if (text) {
+      e.preventDefault();
+      try {
+        await scrcpyRef.current.controller.setClipboard({
+          sequence: BigInt(Date.now()),
+          paste: true,
+          content: text,
+        });
+      } catch (err) {
+        console.error("Lỗi Paste:", err);
+      }
+    }
+  };
+
+  // Xử lý KEYDOWN (gõ phím & tổ hợp phím)
+  const handleKeyDown = (e) => {
+    if (
+      document.activeElement?.tagName === "INPUT" ||
+      document.activeElement?.tagName === "TEXTAREA" ||
+      document.activeElement?.isContentEditable && document.activeElement !== containerRef.current?.parentElement
+    ) {
+      return;
+    }
+    
+    if (!scrcpyRef.current?.controller) return;
+
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      scrcpyRef.current.controller.injectKeyCode({ action: 0, keyCode: 67, metaState: 0, repeat: 0 });
+      scrcpyRef.current.controller.injectKeyCode({ action: 1, keyCode: 67, metaState: 0, repeat: 0 });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      scrcpyRef.current.controller.injectKeyCode({ action: 0, keyCode: 66, metaState: 0, repeat: 0 });
+      scrcpyRef.current.controller.injectKeyCode({ action: 1, keyCode: 66, metaState: 0, repeat: 0 });
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      scrcpyRef.current.controller.injectKeyCode({ action: 0, keyCode: 4, metaState: 0, repeat: 0 }); // BACK
+      scrcpyRef.current.controller.injectKeyCode({ action: 1, keyCode: 4, metaState: 0, repeat: 0 });
+    } else if (e.ctrlKey) {
+      const key = e.key.toLowerCase();
+      if (key === 'a') {
         e.preventDefault();
-        try {
-          await scrcpyRef.current.controller.setClipboard({
-            sequence: BigInt(Date.now()),
-            paste: true, // true = set clipboard và tự động dán luôn
-            content: text,
-          });
-          toast.success("Đã dán văn bản vào điện thoại!", { id: "scrcpy-paste" });
-        } catch (err) {
-          console.error("Lỗi Paste:", err);
-          toast.error("Không thể dán vào điện thoại", { id: "scrcpy-paste" });
-        }
+        scrcpyRef.current.controller.injectKeyCode({ action: 0, keyCode: 29, metaState: 4096, repeat: 0 }); // KEYCODE_A (29) + META_CTRL_ON (4096)
+        scrcpyRef.current.controller.injectKeyCode({ action: 1, keyCode: 29, metaState: 4096, repeat: 0 });
+      } else if (key === 'c') {
+        e.preventDefault();
+        scrcpyRef.current.controller.injectKeyCode({ action: 0, keyCode: 31, metaState: 4096, repeat: 0 }); // KEYCODE_C (31)
+        scrcpyRef.current.controller.injectKeyCode({ action: 1, keyCode: 31, metaState: 4096, repeat: 0 });
+      } else if (key === 'x') {
+        e.preventDefault();
+        scrcpyRef.current.controller.injectKeyCode({ action: 0, keyCode: 52, metaState: 4096, repeat: 0 }); // KEYCODE_X (52)
+        scrcpyRef.current.controller.injectKeyCode({ action: 1, keyCode: 52, metaState: 4096, repeat: 0 });
+      } else if (key === 'z') {
+        e.preventDefault();
+        scrcpyRef.current.controller.injectKeyCode({ action: 0, keyCode: 54, metaState: 4096, repeat: 0 }); // KEYCODE_Z (54)
+        scrcpyRef.current.controller.injectKeyCode({ action: 1, keyCode: 54, metaState: 4096, repeat: 0 });
       }
-    };
-
-    window.addEventListener("paste", handlePaste);
-    return () => window.removeEventListener("paste", handlePaste);
-  }, []);
+      // Bỏ qua Ctrl+V vì onPaste đã tự bắt
+    } else if (e.key.length === 1 && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      scrcpyRef.current.controller.injectText(e.key);
+    }
+  };
 
   useEffect(() => {
     return () => disconnect();
@@ -570,7 +613,13 @@ export default function WebScrcpy() {
                 backgroundSize: "20px 20px"
               }}
             >
-              <div className="w-full h-full relative cursor-pointer" title="Chuột trái: Chạm | Chuột phải: Quay lại (Back)">
+              <div 
+                className="w-full h-full relative cursor-pointer outline-none focus:ring-1 focus:ring-[var(--color-binance-yellow)]/30 rounded" 
+                title="Chuột trái: Chạm | Chuột phải: Quay lại (Back)"
+                tabIndex={0}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+              >
                 <div ref={containerRef} className="w-full h-full" />
               </div>
             </div>
@@ -598,7 +647,6 @@ export default function WebScrcpy() {
                   try {
                     const text = await navigator.clipboard.readText();
                     if (!text) {
-                      toast.error("Bộ nhớ tạm đang trống!", { id: "scrcpy-paste" });
                       return;
                     }
                     await scrcpyRef.current.controller.setClipboard({
@@ -606,9 +654,8 @@ export default function WebScrcpy() {
                       paste: true,
                       content: text,
                     });
-                    toast.success("Đã đồng bộ & Dán vào điện thoại!", { id: "scrcpy-paste" });
                   } catch (e) {
-                    toast.error("Trình duyệt chặn đọc Clipboard. Hãy dùng Ctrl+V!", { id: "scrcpy-paste" });
+                    // console.error("Trình duyệt chặn đọc Clipboard. Hãy dùng Ctrl+V!");
                   }
                 }} 
                 className="p-2 rounded hover:bg-white/10 text-[var(--color-binance-yellow)] hover:text-white transition-colors cursor-pointer" 
