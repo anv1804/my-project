@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Smartphone, MonitorPlay, XCircle, Loader2 } from "lucide-react";
+import { Smartphone, MonitorPlay, XCircle, Loader2, Volume1, Volume2, Power } from "lucide-react";
 import toast from "react-hot-toast";
 
 // Yume-chan packages
@@ -56,6 +56,26 @@ export default function WebScrcpy() {
     deviceRef.current = null;
     setIsConnected(false);
     setDeviceModel("");
+  };
+
+  const injectKey = (keyCode) => {
+    if (!scrcpyRef.current || !scrcpyRef.current.controller) return;
+    try {
+      scrcpyRef.current.controller.injectKeyCode({
+        action: 0, // DOWN
+        keyCode,
+        repeat: 0,
+        metaState: 0,
+      });
+      scrcpyRef.current.controller.injectKeyCode({
+        action: 1, // UP
+        keyCode,
+        repeat: 0,
+        metaState: 0,
+      });
+    } catch (e) {
+      console.error("Inject key error:", e);
+    }
   };
 
   const handleConnect = async () => {
@@ -431,23 +451,55 @@ export default function WebScrcpy() {
 
         {/* Viewport Màn Hình (Chỉ hiển thị khi ĐÃ kết nối) */}
         {isConnected && (
-          <div className="flex flex-col gap-4 flex-1 min-h-0">
+          <div className="flex flex-col gap-3 flex-1 min-h-0">
             
             {/* Phone Frame */}
-            <div className="w-full flex-1 min-h-0 bg-black rounded-lg border border-white/10 shadow-inner relative overflow-hidden flex items-center justify-center">
+            <div 
+              className="w-full flex-1 min-h-0 bg-[#0b0e14] rounded-lg border border-[var(--color-binance-border)] shadow-inner relative overflow-hidden flex items-center justify-center"
+              style={{
+                backgroundImage: "radial-gradient(circle, rgba(252,213,53,0.05) 1px, transparent 1px)",
+                backgroundSize: "20px 20px"
+              }}
+            >
               <div className="w-full h-full relative cursor-pointer" title="Chuột trái: Chạm | Chuột phải: Quay lại (Back)">
-                <div ref={containerRef} className="w-full h-full bg-black" />
+                <div ref={containerRef} className="w-full h-full" />
               </div>
             </div>
 
-            {/* Nút Ngắt kết nối */}
-            <button
-              onClick={disconnect}
-              className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 py-3 px-4 rounded-lg font-bold text-sm transition-all active:scale-[0.98]"
-            >
-              <XCircle size={16} />
-              NGẮT KẾT NỐI
-            </button>
+            {/* Thanh điều khiển phụ (Control Bar) */}
+            <div className="flex items-center justify-center gap-2 p-1.5 rounded-lg bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)]">
+              <button 
+                onClick={() => injectKey(25)} 
+                className="p-2 rounded hover:bg-white/10 text-[var(--color-binance-gray)] hover:text-white transition-colors cursor-pointer" 
+                title="Giảm âm lượng"
+              >
+                <Volume1 size={18} />
+              </button>
+              <button 
+                onClick={() => injectKey(24)} 
+                className="p-2 rounded hover:bg-white/10 text-[var(--color-binance-gray)] hover:text-white transition-colors cursor-pointer" 
+                title="Tăng âm lượng"
+              >
+                <Volume2 size={18} />
+              </button>
+              <button 
+                onClick={() => injectKey(26)} 
+                className="p-2 rounded hover:bg-white/10 text-[var(--color-binance-gray)] hover:text-white transition-colors cursor-pointer" 
+                title="Nguồn (Tắt/Mở màn hình)"
+              >
+                <Power size={18} />
+              </button>
+              
+              <div className="w-px h-6 bg-[var(--color-binance-border)] mx-2" />
+              
+              <button
+                onClick={disconnect}
+                className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 px-3 rounded text-xs font-bold transition-all active:scale-[0.95] cursor-pointer"
+                title="Ngắt kết nối"
+              >
+                <XCircle size={14} /> NGẮT KẾT NỐI
+              </button>
+            </div>
             
           </div>
         )}
