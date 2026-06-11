@@ -16,7 +16,19 @@ export default function WebScrcpy() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [deviceModel, setDeviceModel] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
   const containerRef = useRef(null);
+
+  // Update debug info periodically
+  useEffect(() => {
+    if (!isConnected) return;
+    const interval = setInterval(() => {
+      if (decoderRef.current) {
+        setDebugInfo(`Size: ${decoderRef.current.width}x${decoderRef.current.height} | Frames: ${decoderRef.current.framesRendered} | Skipped: ${decoderRef.current.framesSkipped}`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isConnected]);
 
   // refs for cleanup
   const adbRef = useRef(null);
@@ -307,7 +319,12 @@ export default function WebScrcpy() {
               <span className="text-sm font-semibold">Chưa kết nối</span>
             </div>
           ) : (
-            <div ref={containerRef} className="w-full h-full bg-black cursor-pointer" title="Bạn có thể thao tác chuột trực tiếp lên đây" />
+            <div className="w-full h-full relative cursor-pointer" title="Bạn có thể thao tác chuột trực tiếp lên đây">
+              <div ref={containerRef} className="w-full h-full bg-black" />
+              <div className="absolute top-2 left-2 bg-black/60 text-[var(--color-binance-yellow)] text-[10px] px-2 py-1 rounded pointer-events-none z-10 font-mono">
+                {debugInfo || "Đang lấy frame..."}
+              </div>
+            </div>
           )}
         </div>
       </div>
