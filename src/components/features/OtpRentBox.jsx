@@ -581,10 +581,13 @@ export default function OtpRentBox() {
       {activeTab === "rent" ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-          {/* Order Form */}
-          <div className="lg:col-span-7 bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg flex flex-col gap-5">
+          {/* Cột Trái: Order Form & Sound Panel */}
+          <div className="lg:col-span-7 flex flex-col gap-6">
+            
+            {/* Order Form Card */}
+            <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg flex flex-col gap-5">
 
-            {/* Country */}
+              {/* Country */}
             <div>
               <label className="block text-xs font-semibold text-[var(--color-binance-gray)] uppercase tracking-wider mb-2">1. Chọn Quốc Gia</label>
               <div className="flex gap-3">
@@ -763,10 +766,10 @@ export default function OtpRentBox() {
               </Button>
             </div>
 
-          </div>
+            </div>
+            {/* End of Order Form Card */}
 
-          {/* Sound panel */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
+            {/* Sound panel (Moved to Left Column) */}
             <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-lg p-4 sm:p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4 border-b border-[var(--color-binance-border)] pb-3">
                 <div className="flex items-center gap-2">
@@ -818,8 +821,12 @@ export default function OtpRentBox() {
                 </div>
               </div>
             </div>
-            
-            {/* Scrcpy Screen Mirroring */}
+
+          </div>
+          {/* End of Left Column */}
+
+          {/* Cột Phải: Screen Mirroring */}
+          <div className="lg:col-span-5">
             <WebScrcpy />
           </div>
 
