@@ -139,7 +139,7 @@ export default function WebScrcpy() {
         bitRate: 8000000,
         maxFps: 60,
         videoEncoder: useSoftwareDecoder ? "OMX.google.h264.encoder" : undefined, // Force Android Software Encoder for 100% compatibility
-        audio: false,
+        audio: true, // Kích hoạt chuyển tiếp âm thanh
         control: true, // Cho phép điều khiển
       }, {
         version: "3.3.3" // Khôi phục lại 3.3.3 (phiên bản custom của Yume-chan)
@@ -152,7 +152,73 @@ export default function WebScrcpy() {
       const scrcpy = await Promise.race([scrcpyPromise, timeoutPromise]);
       scrcpyRef.current = scrcpy;
 
-      // 5. Decode Video
+      // 5. Decode Audio (If available)
+      scrcpy.audioStream?.then(async (audioMeta) => {
+        if (!audioMeta || audioMeta.type !== "success") {
+          console.warn("Audio disabled or errored:", audioMeta?.type);
+          return;
+        }
+        
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          const audioCtx = new AudioContextClass({ sampleRate: 48000 });
+          let nextStartTime = 0;
+          
+          const audioDecoder = new AudioDecoder({
+            output: (audioData) => {
+              const audioBuffer = audioCtx.createBuffer(
+                audioData.numberOfChannels,
+                audioData.numberOfFrames,
+                audioData.sampleRate
+              );
+              for (let c = 0; c < audioData.numberOfChannels; c++) {
+                const f32Array = new Float32Array(audioData.numberOfFrames);
+                audioData.copyTo(f32Array, { planeIndex: c, format: "f32" });
+                audioBuffer.copyToChannel(f32Array, c);
+              }
+              const source = audioCtx.createBufferSource();
+              source.buffer = audioBuffer;
+              source.connect(audioCtx.destination);
+              
+              if (nextStartTime < audioCtx.currentTime) {
+                nextStartTime = audioCtx.currentTime;
+              }
+              source.start(nextStartTime);
+              nextStartTime += audioBuffer.duration;
+              
+              audioData.close();
+            },
+            error: (e) => console.error("Audio Decoder error:", e)
+          });
+          
+          const reader = audioMeta.stream.getReader();
+          while (true) {
+            const { value: packet, done } = await reader.read();
+            if (done) break;
+            if (!packet) continue;
+            
+            if (packet.type === "configuration") {
+              audioDecoder.configure({
+                codec: audioMeta.codec?.webCodecId || "opus",
+                sampleRate: 48000,
+                numberOfChannels: 2,
+                description: packet.data
+              });
+            } else if (packet.type === "data" && audioDecoder.state === "configured") {
+              audioDecoder.decode(new EncodedAudioChunk({
+                type: "key",
+                timestamp: Number(packet.pts || 0),
+                data: packet.data
+              }));
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi phát âm thanh:", err);
+        }
+      }).catch(err => console.error("Lỗi lấy luồng âm thanh:", err));
+
+      // 6. Decode Video
       const videoStream = await scrcpy.videoStream;
       if (!videoStream) {
         throw new Error("Không nhận được luồng video từ điện thoại");
