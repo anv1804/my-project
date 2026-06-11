@@ -10,12 +10,14 @@ import AdbWebCredentialStore from "@yume-chan/adb-credential-web";
 import { AdbDaemonWebUsbDeviceManager } from "@yume-chan/adb-daemon-webusb";
 import { AdbScrcpyClient, AdbScrcpyOptionsLatest } from "@yume-chan/adb-scrcpy";
 import { WebCodecsVideoDecoder, InsertableStreamVideoFrameRenderer, WebGLVideoFrameRenderer, BitmapVideoFrameRenderer } from "@yume-chan/scrcpy-decoder-webcodecs";
+import { TinyH264Decoder } from "@yume-chan/scrcpy-decoder-tinyh264";
 import { Consumable, WritableStream } from "@yume-chan/stream-extra";
 
 export default function WebScrcpy() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [deviceModel, setDeviceModel] = useState("");
+  const [useSoftwareDecoder, setUseSoftwareDecoder] = useState(false);
   const [videoElement, setVideoElement] = useState(null);
   const containerRef = useRef(null);
   // Append video element to DOM when ready
