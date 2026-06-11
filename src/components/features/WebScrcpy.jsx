@@ -124,10 +124,18 @@ export default function WebScrcpy() {
         const domElement = renderer.element || renderer.canvas;
         containerRef.current.appendChild(domElement);
         // Style the renderer (canvas) to fit nicely
+        domElement.style.position = "absolute";
+        domElement.style.top = "0";
+        domElement.style.left = "0";
         domElement.style.width = "100%";
         domElement.style.height = "100%";
         domElement.style.objectFit = "contain";
         domElement.style.borderRadius = "0.5rem";
+        
+        // Force play if it's a video element (fixes autoplay issues)
+        if (domElement instanceof HTMLVideoElement) {
+          domElement.play().catch(e => console.error("Play error:", e));
+        }
       }
 
       videoStream.stream.pipeTo(decoder.writable).catch(console.error);
