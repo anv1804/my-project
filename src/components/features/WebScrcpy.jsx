@@ -104,6 +104,7 @@ export default function WebScrcpy() {
       const options = new AdbScrcpyOptionsLatest({
         maxSize: 720,
         bitRate: 4000000,
+        maxFps: 60,
         audio: false,
         control: true, // Cho phép điều khiển
       }, {
@@ -123,15 +124,13 @@ export default function WebScrcpy() {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
       
-      // Bắt buộc dùng WebGL: Bỏ qua InsertableStream vì bộ đệm MediaStream của Chrome 
-      // sẽ tự động drop (vứt bỏ) frame nếu timestamp bị trễ, gây hiện tượng khựng/giật cục (stutter).
-      // WebGL sẽ vẽ ngay lập tức bất chấp timestamp.
+      // Sử dụng InsertableStream để trình duyệt tự động dùng Pipeline phần cứng cho thẻ <video>
+      // Render WebGL trên Main Thread gây nghẽn nghiêm trọng (Khựng hình)
       let renderer;
-      try {
+      if (InsertableStreamVideoFrameRenderer.isSupported) {
+        renderer = new InsertableStreamVideoFrameRenderer();
+      } else {
         renderer = new WebGLVideoFrameRenderer();
-      } catch (e) {
-        console.warn("WebGL not supported, falling back to Bitmap renderer");
-        renderer = new BitmapVideoFrameRenderer();
       }
 
       const decoder = new WebCodecsVideoDecoder({
