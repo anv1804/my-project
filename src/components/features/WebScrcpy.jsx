@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { Adb, AdbDaemonTransport } from "@yume-chan/adb";
 import AdbWebCredentialStore from "@yume-chan/adb-credential-web";
 import { AdbDaemonWebUsbDeviceManager } from "@yume-chan/adb-daemon-webusb";
-import { AdbScrcpyClient, AdbScrcpyOptions2_1 } from "@yume-chan/adb-scrcpy";
+import { AdbScrcpyClient, AdbScrcpyOptionsLatest } from "@yume-chan/adb-scrcpy";
 import { WebCodecsVideoDecoder, InsertableStreamVideoFrameRenderer, WebGLVideoFrameRenderer } from "@yume-chan/scrcpy-decoder-webcodecs";
 import { Consumable, WritableStream } from "@yume-chan/stream-extra";
 
@@ -86,14 +86,13 @@ export default function WebScrcpy() {
 
       // 4. Start Scrcpy
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
-      const options = new AdbScrcpyOptions2_1({
+      const options = new AdbScrcpyOptionsLatest({
         maxSize: 1080,
         bitRate: 4000000,
         audio: false,
         control: true, // Cho phép điều khiển
-        tunnelForward: true, // Bắt buộc dùng forward tunnel để tránh lỗi treo kết nối qua WebUSB
       }, {
-        version: "2.1.1"
+        version: "3.3.3"
       });
       
       // Start Scrcpy with a 15-second timeout
