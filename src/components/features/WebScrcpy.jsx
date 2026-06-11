@@ -101,16 +101,17 @@ export default function WebScrcpy() {
       });
       sync.dispose();
 
-      // 4. Start Scrcpy
+      // 5. Start Scrcpy
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
       const options = new AdbScrcpyOptionsLatest({
-        maxSize: 720,
-        bitRate: 4000000,
-        maxFps: 60,
+        maxSize: useSoftwareDecoder ? 480 : 720,
+        bitRate: useSoftwareDecoder ? 1500000 : 4000000,
+        maxFps: useSoftwareDecoder ? 30 : 60,
+        videoEncoder: useSoftwareDecoder ? "OMX.google.h264.encoder" : undefined, // Force Android Software Encoder for 100% compatibility
         audio: false,
         control: true, // Cho phép điều khiển
       }, {
-        version: "3.3.3"
+        version: "3.1" // Khớp với phiên bản server vừa download
       });
       
       // Start Scrcpy with a 15-second timeout
@@ -126,27 +127,19 @@ export default function WebScrcpy() {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
       
-      let decoder;
-      let domElement;
-
-      if (useSoftwareDecoder) {
-        decoder = new TinyH264Decoder();
-        domElement = decoder.renderer;
-      } else {
-        let renderer;
-        try {
-          renderer = new WebGLVideoFrameRenderer();
-        } catch (e) {
-          console.warn("WebGL not supported, falling back to Bitmap renderer");
-          renderer = new BitmapVideoFrameRenderer();
-        }
-
-        decoder = new WebCodecsVideoDecoder({
-          codec: videoStream.metadata.codec,
-          renderer,
-        });
-        domElement = renderer.element || renderer.canvas;
+      let renderer;
+      try {
+        renderer = new WebGLVideoFrameRenderer();
+      } catch (e) {
+        console.warn("WebGL not supported, falling back to Bitmap renderer");
+        renderer = new BitmapVideoFrameRenderer();
       }
+
+      const decoder = new WebCodecsVideoDecoder({
+        codec: videoStream.metadata.codec,
+        renderer,
+      });
+      const domElement = renderer.element || renderer.canvas;
 
       decoderRef.current = decoder;
       
@@ -168,7 +161,10 @@ export default function WebScrcpy() {
       
       setVideoElement(domElement);
 
-      videoStream.stream.pipeTo(decoder.writable).catch(console.error);
+      videoStream.stream.pipeTo(decoder.writable).catch(e => {
+        console.error("Video pipe error:", e);
+        toast.error(`Lỗi giải mã: ${e.message || "Video không được hỗ trợ"}. Hãy bật chế độ "Sửa lỗi đen màn hình" để ép điện thoại dùng chuẩn video cơ bản nhất.`, { id: "scrcpy", duration: 10000 });
+      });
 
       // 6. Handle Control Injection (Mouse/Touch/Scroll)
       // Dịch sự kiện chuột trên DOM renderer (canvas) sang tọa độ Scrcpy
