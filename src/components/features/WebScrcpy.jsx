@@ -75,12 +75,11 @@ export default function WebScrcpy() {
       // 3. Push Scrcpy Server
       toast.loading("Đang cài đặt server lên điện thoại...", { id: "scrcpy" });
       const res = await fetch("/scrcpy-server.jar");
-      const serverBuffer = await res.arrayBuffer();
       
       const sync = await adb.sync();
       await sync.write({
         filename: "/data/local/tmp/scrcpy-server.jar",
-        file: new Uint8Array(serverBuffer),
+        file: res.body,
       });
       sync.dispose();
 
