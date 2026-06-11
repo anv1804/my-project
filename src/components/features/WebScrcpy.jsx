@@ -16,21 +16,8 @@ export default function WebScrcpy() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [deviceModel, setDeviceModel] = useState("");
-  const [debugInfo, setDebugInfo] = useState("");
   const [videoElement, setVideoElement] = useState(null);
   const containerRef = useRef(null);
-
-  // Update debug info periodically
-  useEffect(() => {
-    if (!isConnected) return;
-    const interval = setInterval(() => {
-      if (decoderRef.current) {
-        setDebugInfo(`Size: ${decoderRef.current.width}x${decoderRef.current.height} | Frames: ${decoderRef.current.framesRendered} | Skipped: ${decoderRef.current.framesSkipped}`);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isConnected]);
-
   // Append video element to DOM when ready
   useEffect(() => {
     if (isConnected && containerRef.current && videoElement) {
@@ -128,8 +115,13 @@ export default function WebScrcpy() {
       if (!videoStream) {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
-      // Dùng hẳn BitmapVideoFrameRenderer để ép vẽ bằng 2D Context, tránh lỗi màn đen do WebGL ảo trên một số dòng máy
-      const renderer = new BitmapVideoFrameRenderer();
+      let renderer;
+      try {
+        renderer = new WebGLVideoFrameRenderer();
+      } catch (e) {
+        console.warn("WebGL not supported, falling back to Bitmap renderer");
+        renderer = new BitmapVideoFrameRenderer();
+      }
 
       const decoder = new WebCodecsVideoDecoder({
         codec: videoStream.metadata.codec,
@@ -325,9 +317,6 @@ export default function WebScrcpy() {
           ) : (
             <div className="w-full h-full relative cursor-pointer" title="Bạn có thể thao tác chuột trực tiếp lên đây">
               <div ref={containerRef} className="w-full h-full bg-black" />
-              <div className="absolute top-2 left-2 bg-black/60 text-[var(--color-binance-yellow)] text-[10px] px-2 py-1 rounded pointer-events-none z-10 font-mono">
-                {debugInfo || "Đang lấy frame..."}
-              </div>
             </div>
           )}
         </div>
