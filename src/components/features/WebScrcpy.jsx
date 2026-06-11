@@ -118,13 +118,8 @@ export default function WebScrcpy() {
       if (!videoStream) {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
-      let renderer;
-      try {
-        renderer = new WebGLVideoFrameRenderer();
-      } catch (e) {
-        console.warn("WebGL not supported, falling back to Bitmap renderer");
-        renderer = new BitmapVideoFrameRenderer();
-      }
+      // Dùng hẳn BitmapVideoFrameRenderer để ép vẽ bằng 2D Context, tránh lỗi màn đen do WebGL ảo trên một số dòng máy
+      const renderer = new BitmapVideoFrameRenderer();
 
       const decoder = new WebCodecsVideoDecoder({
         codec: videoStream.metadata.codec,
