@@ -136,6 +136,7 @@ export default function WebScrcpy() {
 
       const decoder = new WebCodecsVideoDecoder({
         codec: videoStream.metadata.codec,
+        hardwareAcceleration: "prefer-hardware",
         renderer,
       });
       decoderRef.current = decoder;
@@ -150,6 +151,7 @@ export default function WebScrcpy() {
       domElement.style.height = "100%";
       domElement.style.objectFit = "contain";
       domElement.style.borderRadius = "0.5rem";
+      domElement.style.touchAction = "none"; // Khóa mọi hành vi zoom/scroll của trình duyệt để vuốt mượt nhất
       
       // Force play if it's a video element (fixes autoplay issues)
       if (domElement instanceof HTMLVideoElement) {
@@ -161,13 +163,57 @@ export default function WebScrcpy() {
 
       videoStream.stream.pipeTo(decoder.writable).catch(console.error);
 
-      // 6. Handle Control Injection (Mouse/Touch)
+      // 6. Handle Control Injection (Mouse/Touch/Scroll)
       // Dịch sự kiện chuột trên DOM renderer (canvas) sang tọa độ Scrcpy
-      // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
       let isDragging = false;
       let moveEventPending = false;
       let lastMoveEvent = null;
 
+      // Xử lý Lăn Chuột / Vuốt Touchpad (CỰC KỲ QUAN TRỌNG ĐỂ HẾT LAG KHI CUỘN)
+      domElement.addEventListener("wheel", (e) => {
+        e.preventDefault();
+        if (!scrcpyRef.current || !scrcpyRef.current.controller) return;
+
+        const rect = domElement.getBoundingClientRect();
+        const clientWidth = rect.width;
+        const clientHeight = rect.height;
+        const videoWidth = decoder.width || 1080;
+        const videoHeight = decoder.height || 1920;
+        const videoRatio = videoWidth / videoHeight;
+        const clientRatio = clientWidth / clientHeight;
+
+        let renderWidth, renderHeight, offsetX, offsetY;
+        if (videoRatio > clientRatio) {
+          renderWidth = clientWidth; renderHeight = clientWidth / videoRatio;
+          offsetX = 0; offsetY = (clientHeight - renderHeight) / 2;
+        } else {
+          renderHeight = clientHeight; renderWidth = clientHeight * videoRatio;
+          offsetX = (clientWidth - renderWidth) / 2; offsetY = 0;
+        }
+
+        const x = e.clientX - rect.left - offsetX;
+        const y = e.clientY - rect.top - offsetY;
+        const clampedX = Math.max(0, Math.min(x, renderWidth));
+        const clampedY = Math.max(0, Math.min(y, renderHeight));
+        const pointerX = Math.round((clampedX / renderWidth) * videoWidth);
+        const pointerY = Math.round((clampedY / renderHeight) * videoHeight);
+
+        // Normalize cuộn (Scrcpy nhận scrollX, scrollY từ -1 đến 1)
+        const scrollX = e.deltaX === 0 ? 0 : e.deltaX > 0 ? -1 : 1;
+        const scrollY = e.deltaY === 0 ? 0 : e.deltaY > 0 ? -1 : 1;
+
+        scrcpyRef.current.controller.injectScroll({
+          pointerX,
+          pointerY,
+          videoWidth,
+          videoHeight,
+          scrollX,
+          scrollY,
+          buttons: 0,
+        });
+      }, { passive: false });
+
+      // Use Pointer events and preventDefault to stop browser's native drag-and-drop from hijacking the swipe
       domElement.addEventListener("pointerdown", (e) => {
         e.preventDefault();
         domElement.setPointerCapture(e.pointerId);
