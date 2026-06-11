@@ -846,7 +846,7 @@ export default function OtpRentBox() {
               <p className="text-[var(--color-binance-gray)] text-xs mt-1 opacity-60">Thuê số ở khung bên trên để nhận OTP</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-3">
               {activeRentals.map((rental) => {
                 const durationSecs = 300;
                 const elapsed = Math.floor((now - new Date(rental.createdAt).getTime()) / 1000);
@@ -873,139 +873,131 @@ export default function OtpRentBox() {
                   >
                     <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${borderColor}aa, transparent)` }} />
 
-                    <div className="p-4 flex flex-col gap-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="shrink-0 w-8 h-8 rounded-lg bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] flex items-center justify-center">
-                            <BrandIcon name={rental.service_name?.toLowerCase()} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-bold text-[var(--color-binance-light)] leading-snug truncate" title={rental.service_name}>{rental.service_name}</div>
-                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                              <Globe size={9} className="text-blue-400 shrink-0" />
-                              <span className="text-[10px] font-semibold text-[var(--color-binance-gray)]">{rental.countryISO?.toUpperCase()}</span>
-                              <span className="text-[10px] text-[var(--color-binance-gray)]/40">·</span>
-                              <span className="text-[10px] text-[var(--color-binance-yellow)] font-mono whitespace-nowrap">{formatCoin(rental.price)}</span>
-                              {carrier && (
-                                <>
-                                  <span className="text-[10px] text-[var(--color-binance-gray)]/40">·</span>
-                                  <span className={`inline-flex items-center px-1.5 py-0 rounded text-[9px] font-bold tracking-wide ${carrier.bg} ${carrier.border} ${carrier.text} border`}>
-                                    {carrier.name}
-                                  </span>
-                                </>
-                              )}
-                            </div>
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center p-3 gap-4">
+                      
+                      {/* Cột 1: Thông tin dịch vụ */}
+                      <div className="flex items-center gap-3 w-full md:w-[200px] shrink-0">
+                        <div className="shrink-0 w-10 h-10 rounded-lg bg-[var(--color-binance-darker)] border border-[var(--color-binance-border)] flex items-center justify-center relative shadow-inner">
+                          <BrandIcon name={rental.service_name?.toLowerCase()} />
+                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[var(--color-binance-dark)] ${isCompleted ? "bg-green-500" : isExpired ? "bg-gray-500" : "bg-yellow-500 animate-pulse"}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-bold text-[var(--color-binance-light)] leading-snug truncate" title={rental.service_name}>{rental.service_name}</div>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <Globe size={10} className="text-blue-400 shrink-0" />
+                            <span className="text-[10px] font-semibold text-[var(--color-binance-gray)]">{rental.countryISO?.toUpperCase()}</span>
+                            {carrier && (
+                              <>
+                                <span className="text-[10px] text-[var(--color-binance-gray)]/40">·</span>
+                                <span className={`inline-flex items-center px-1.5 py-0 rounded text-[9px] font-bold tracking-wide ${carrier.bg} border-transparent ${carrier.text}`}>
+                                  {carrier.name}
+                                </span>
+                              </>
+                            )}
+                            <span className="text-[10px] text-[var(--color-binance-gray)]/40">·</span>
+                            <span className="text-[10px] text-[var(--color-binance-yellow)] font-mono whitespace-nowrap">{formatCoin(rental.price)}</span>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="shrink-0 flex items-center gap-2">
+                      {/* Cột 2: Số điện thoại */}
+                      <div className="w-full md:w-[170px] shrink-0">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between gap-2 bg-[var(--color-binance-darker)] rounded-lg px-3 py-2 border border-[var(--color-binance-border)]/60">
+                            <span className="font-mono font-bold text-white text-[13px] tracking-wide truncate">
+                              {rental.countryCode ? `+${rental.countryCode} ` : ""}{rental.phone_number}
+                            </span>
+                            <button onClick={() => copy(rental.phone_number)} className="text-[var(--color-binance-gray)] hover:text-white transition-colors cursor-pointer shrink-0" title="Copy số điện thoại">
+                              {isPhoneCopied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                            </button>
+                          </div>
                           {isWaiting && !isExpired && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/25">
-                              <RefreshCw size={9} className="animate-spin text-yellow-400" />
-                              <span className="font-mono text-[10px] text-yellow-400 tabular-nums">{formattedTime}</span>
+                            <div className="flex items-center gap-2 px-1">
+                              <div className="h-1 flex-1 bg-[var(--color-binance-border)] rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-1000 ease-linear" style={{ width: `${pct}%`, background: `linear-gradient(90deg, #f0b90b, #fbbf24)` }} />
+                              </div>
+                              <span className="font-mono text-[10px] text-yellow-400 shrink-0">{formattedTime}</span>
                             </div>
                           )}
                           {isCompleted && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/25">
-                              <CheckCircle2 size={10} className="text-green-400" />
-                              <span className="text-[10px] text-green-400">Thành công</span>
+                            <div className="flex items-center gap-1.5 text-[10px] text-green-400 px-1 font-medium">
+                              <CheckCircle2 size={10} /> Đã nhận được OTP
                             </div>
                           )}
                           {isExpired && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-500/10 border border-gray-500/25">
-                              <XCircle size={10} className="text-gray-400" />
-                              <span className="text-[10px] text-gray-400">Hết hạn</span>
+                            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 px-1 font-medium">
+                              <XCircle size={10} /> Đã hết hạn
                             </div>
                           )}
+                        </div>
+                      </div>
 
-                          <div className="flex items-center border-l border-[var(--color-binance-border)]/40 pl-1.5 ml-0.5 gap-0.5">
-                            <button onClick={() => handleRentAgain(rental)} title="Thuê lại số này" className="p-1 rounded text-[var(--color-binance-gray)] hover:text-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-yellow)]/10 transition-colors cursor-pointer">
-                              <RefreshCw size={12} />
-                            </button>
-                            <button onClick={() => handleRemoveRental(rental.request_id)} title="Xóa thẻ này" className="p-1 rounded text-[var(--color-binance-gray)] hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer">
-                              <Trash2 size={12} />
-                            </button>
+                      {/* Cột 3: OTP Code */}
+                      <div className="w-full md:flex-1">
+                        <div className={`flex items-center justify-between gap-3 px-4 py-2 rounded-lg border h-[42px] ${
+                          isCompleted && rental.code
+                            ? "bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.08)]"
+                            : "bg-[var(--color-binance-darker)] border-[var(--color-binance-border)]/60"
+                        }`}>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`text-[10px] uppercase tracking-widest font-bold ${isCompleted && rental.code ? "text-green-400/80" : "text-[var(--color-binance-gray)]"}`}>
+                              Mã OTP
+                            </div>
+                            {isCompleted && rental.code ? (
+                              <span className="font-mono font-black text-green-400 text-xl tracking-[0.2em]">{rental.code}</span>
+                            ) : (
+                              <span className="font-mono text-xs text-[var(--color-binance-gray)]/40 italic">
+                                {isExpired ? "Thất bại" : "Đang chờ..."}
+                              </span>
+                            )}
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2 bg-[var(--color-binance-darker)]/80 hover:bg-[var(--color-binance-darker)] rounded-lg px-3 py-2 border border-[var(--color-binance-border)]/40 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? "bg-green-400" : isExpired ? "bg-gray-500" : "bg-yellow-400 animate-pulse"}`} />
-                          <span className="font-mono font-bold text-white text-[13px] tracking-wide">
-                            {rental.countryCode ? `+${rental.countryCode} ` : ""}{rental.phone_number}
-                          </span>
-                        </div>
-                        <button onClick={() => copy(rental.phone_number)} className="p-1 rounded text-[var(--color-binance-gray)] hover:text-white hover:bg-white/10 transition-colors cursor-pointer" title="Copy số điện thoại">
-                          {isPhoneCopied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-binance-gray)]/60 px-1">
-                        <Calendar size={9} className="shrink-0" />
-                        <span>
-                          {rental.createdAt
-                            ? new Date(rental.createdAt).toLocaleString("vi-VN", {
-                                day: "2-digit", month: "2-digit", year: "numeric",
-                                hour: "2-digit", minute: "2-digit", second: "2-digit",
-                              })
-                            : "—"}
-                        </span>
-                      </div>
-
-                      {isWaiting && !isExpired && (
-                        <div className="h-0.5 bg-[var(--color-binance-border)] rounded-full overflow-hidden -mt-1">
-                          <div
-                            className="h-full rounded-full transition-all duration-1000 ease-linear"
-                            style={{ width: `${pct}%`, background: `linear-gradient(90deg, #f0b90b, #fbbf24)` }}
-                          />
-                        </div>
-                      )}
-
-                      <div className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border ${
-                        isCompleted && rental.code
-                          ? "bg-green-500/10 border-green-500/20 shadow-[0_0_12px_rgba(34,197,94,0.05)]"
-                          : "bg-[var(--color-binance-darker)]/60 border-[var(--color-binance-border)]/40"
-                      }`}>
-                        <div className="min-w-0 flex-1">
-                          <div className={`text-[9px] uppercase tracking-widest font-bold mb-0.5 ${isCompleted && rental.code ? "text-green-400/70" : "text-[var(--color-binance-gray)]/50"}`}>
-                            Mã OTP
-                          </div>
-                          {isCompleted && rental.code ? (
-                            <span className="font-mono font-black text-green-400 text-lg tracking-[0.2em]">{rental.code}</span>
-                          ) : (
-                            <span className="font-mono text-sm text-[var(--color-binance-gray)]/30 italic">
-                              {isExpired ? "Không nhận được" : "Đang chờ..."}
-                            </span>
+                          {isCompleted && rental.code && (
+                            <button onClick={() => copy(rental.code)} className="shrink-0 flex items-center justify-center p-1.5 rounded-md bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors cursor-pointer" title="Copy mã OTP">
+                              {isCodeCopied ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
                           )}
                         </div>
-                        {isCompleted && rental.code && (
-                          <button
-                            onClick={() => copy(rental.code)}
-                            className="shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-colors cursor-pointer"
-                          >
-                            {isCodeCopied ? <><Check size={11} /> Copy xong</> : <><Copy size={11} /> Copy</>}
-                          </button>
-                        )}
                       </div>
 
-                      <div className="px-3 py-2.5 bg-[var(--color-binance-darker)]/80 border border-[var(--color-binance-border)]/50 rounded-lg">
-                        <div className="text-[9px] text-[var(--color-binance-gray)] uppercase tracking-wider font-bold mb-1.5 opacity-70">
-                          Tin nhắn nhận được
-                        </div>
-                        {rental.smsContent ? (
-                          rental.isSound ? (
-                            <audio src={rental.smsContent} controls className="w-full h-7" />
-                          ) : (
-                            <p className="font-mono text-xs text-white/95 whitespace-pre-wrap select-all leading-relaxed break-all">{rental.smsContent}</p>
-                          )
-                        ) : (
-                          <p className="font-mono text-xs text-[var(--color-binance-gray)]/30 italic">
-                            {isExpired ? "Không có tin nhắn" : "Chưa nhận được..."}
-                          </p>
-                        )}
+                      {/* Cột 4: Nút hành động */}
+                      <div className="shrink-0 flex md:flex-col items-center justify-end gap-1.5 border-t md:border-t-0 md:border-l border-[var(--color-binance-border)]/40 pt-3 md:pt-0 md:pl-3">
+                        <button onClick={() => handleRentAgain(rental)} title="Thuê lại số này" className="p-1.5 rounded-lg text-[var(--color-binance-gray)] hover:text-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-yellow)]/10 transition-colors cursor-pointer">
+                          <RefreshCw size={15} />
+                        </button>
+                        <button onClick={() => handleRemoveRental(rental.request_id)} title="Xóa thẻ này" className="p-1.5 rounded-lg text-[var(--color-binance-gray)] hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer">
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </div>
+                    
+                    {/* Phần SMS nằm dưới cùng */}
+                    {(rental.smsContent || rental.createdAt) && (
+                      <div className="bg-[var(--color-binance-darker)]/40 border-t border-[var(--color-binance-border)]/30 px-4 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-binance-gray)]/50 font-medium">
+                          <Calendar size={11} className="shrink-0" />
+                          <span>
+                            {rental.createdAt
+                              ? new Date(rental.createdAt).toLocaleString("vi-VN", {
+                                  day: "2-digit", month: "2-digit", year: "numeric",
+                                  hour: "2-digit", minute: "2-digit", second: "2-digit",
+                                })
+                              : "—"}
+                          </span>
+                        </div>
+                        {rental.smsContent && (
+                           <div className="flex-1 flex justify-end overflow-hidden">
+                             {rental.isSound ? (
+                               <audio src={rental.smsContent} controls className="w-full sm:w-[250px] h-7" />
+                             ) : (
+                               <div className="text-[11px] text-[var(--color-binance-light)] font-mono truncate" title={rental.smsContent}>
+                                 <span className="text-[var(--color-binance-gray)]/50 mr-1.5">SMS:</span>
+                                 {rental.smsContent}
+                               </div>
+                             )}
+                           </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

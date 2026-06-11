@@ -264,10 +264,10 @@ export default function Header() {
                   <User size={15} className="text-[var(--color-binance-gray)]" /> Trang cá nhân
                 </Link>
                 <Link
-                  href="/thue-otp/lich-su"
+                  href="/nap-coin/lich-su"
                   className="flex items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-binance-light)] hover:bg-[var(--color-binance-border)]/50 transition-colors"
                 >
-                  <History size={15} className="text-[var(--color-binance-gray)]" /> Lịch sử thuê số
+                  <History size={15} className="text-[var(--color-binance-gray)]" /> Lịch sử nạp tiền
                 </Link>
                 <Link
                   href="/coin-history"
