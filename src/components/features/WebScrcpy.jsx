@@ -173,12 +173,15 @@ export default function WebScrcpy() {
 
       decoderRef.current = decoder;
       
-      // Style the renderer (canvas) to fit nicely
+      // Style the renderer (canvas) to fit nicely and expose the container background
       domElement.style.position = "absolute";
-      domElement.style.top = "0";
-      domElement.style.left = "0";
-      domElement.style.width = "100%";
-      domElement.style.height = "100%";
+      domElement.style.top = "50%";
+      domElement.style.left = "50%";
+      domElement.style.transform = "translate(-50%, -50%)";
+      domElement.style.maxWidth = "100%";
+      domElement.style.maxHeight = "100%";
+      domElement.style.width = "auto";
+      domElement.style.height = "auto";
       domElement.style.objectFit = "contain";
       domElement.style.borderRadius = "0.5rem";
       domElement.style.touchAction = "none"; // Khóa mọi hành vi zoom/scroll của trình duyệt để vuốt mượt nhất
@@ -493,7 +496,11 @@ export default function WebScrcpy() {
               <div className="w-px h-6 bg-[var(--color-binance-border)] mx-2" />
               
               <button
-                onClick={disconnect}
+                onClick={() => {
+                  if (window.confirm("Bạn có chắc chắn muốn ngắt kết nối thiết bị?")) {
+                    disconnect();
+                  }
+                }}
                 className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 px-3 rounded text-xs font-bold transition-all active:scale-[0.95] cursor-pointer"
                 title="Ngắt kết nối"
               >
