@@ -19,6 +19,7 @@ export default function WebScrcpy() {
   const [deviceModel, setDeviceModel] = useState("");
   const [useSoftwareDecoder, setUseSoftwareDecoder] = useState(false);
   const [videoElement, setVideoElement] = useState(null);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const containerRef = useRef(null);
   // Append video element to DOM when ready
   useEffect(() => {
@@ -496,11 +497,7 @@ export default function WebScrcpy() {
               <div className="w-px h-6 bg-[var(--color-binance-border)] mx-2" />
               
               <button
-                onClick={() => {
-                  if (window.confirm("Bạn có chắc chắn muốn ngắt kết nối thiết bị?")) {
-                    disconnect();
-                  }
-                }}
+                onClick={() => setShowDisconnectConfirm(true)}
                 className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 py-1.5 px-3 rounded text-xs font-bold transition-all active:scale-[0.95] cursor-pointer"
                 title="Ngắt kết nối"
               >
@@ -512,6 +509,38 @@ export default function WebScrcpy() {
         )}
 
       </div>
+
+      {/* Custom Disconnect Confirm Modal */}
+      {showDisconnectConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--color-binance-dark)] border border-[var(--color-binance-border)] rounded-xl shadow-2xl p-6 max-w-sm w-full mx-auto animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+              <XCircle className="text-red-500" size={20} />
+              Ngắt kết nối thiết bị?
+            </h3>
+            <p className="text-sm text-[var(--color-binance-gray)] mb-6 leading-relaxed">
+              Bạn có chắc chắn muốn ngắt kết nối với thiết bị này? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button 
+                onClick={() => setShowDisconnectConfirm(false)}
+                className="px-4 py-2 rounded-lg font-medium text-sm text-[var(--color-binance-gray)] hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={() => {
+                  setShowDisconnectConfirm(false);
+                  disconnect();
+                }}
+                className="px-4 py-2 rounded-lg font-bold text-sm bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20 transition-all active:scale-95 cursor-pointer"
+              >
+                Ngắt Kết Nối
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
