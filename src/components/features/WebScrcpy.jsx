@@ -63,7 +63,6 @@ export default function WebScrcpy() {
         serial: device.serial,
         connection,
         credentialStore,
-        initialDelayedAckBytes: 0,
       });
       const adb = new Adb(transport);
       adbRef.current = adb;
