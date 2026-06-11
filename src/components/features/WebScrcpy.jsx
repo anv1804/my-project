@@ -124,24 +124,29 @@ export default function WebScrcpy() {
         throw new Error("Không nhận được luồng video từ điện thoại");
       }
       
-      // Bắt buộc dùng WebGL để đảm bảo tương thích 100% trên mọi máy tính và môi trường Production.
-      // InsertableStream (Native Video) thường xuyên gây lỗi "EncodingError" hoặc "OperationError" 
-      // trên các máy tính thiếu cờ bảo mật COOP/COEP hoặc không hỗ trợ Pipeline phần cứng.
-      let renderer;
-      try {
-        renderer = new WebGLVideoFrameRenderer();
-      } catch (e) {
-        console.warn("WebGL not supported, falling back to Bitmap renderer");
-        renderer = new BitmapVideoFrameRenderer();
+      let decoder;
+      let domElement;
+
+      if (useSoftwareDecoder) {
+        decoder = new TinyH264Decoder();
+        domElement = decoder.renderer;
+      } else {
+        let renderer;
+        try {
+          renderer = new WebGLVideoFrameRenderer();
+        } catch (e) {
+          console.warn("WebGL not supported, falling back to Bitmap renderer");
+          renderer = new BitmapVideoFrameRenderer();
+        }
+
+        decoder = new WebCodecsVideoDecoder({
+          codec: videoStream.metadata.codec,
+          renderer,
+        });
+        domElement = renderer.element || renderer.canvas;
       }
 
-      const decoder = new WebCodecsVideoDecoder({
-        codec: videoStream.metadata.codec,
-        renderer,
-      });
       decoderRef.current = decoder;
-      
-      const domElement = renderer.element || renderer.canvas;
       
       // Style the renderer (canvas) to fit nicely
       domElement.style.position = "absolute";
@@ -375,24 +380,40 @@ export default function WebScrcpy() {
             </ul>
           </div>
 
-          <div className="flex gap-3">
-            {!isConnected ? (
-              <button
-                onClick={handleConnect}
-                disabled={isConnecting}
-                className="flex items-center gap-2 bg-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-yellow)]/90 text-black px-4 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
-              >
-                {isConnecting ? <Loader2 size={16} className="animate-spin" /> : <Smartphone size={16} />}
-                {isConnecting ? "Đang kết nối..." : "Kết Nối USB Điện Thoại"}
-              </button>
-            ) : (
-              <button
-                onClick={disconnect}
-                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2.5 rounded-lg font-bold text-sm transition-colors"
-              >
-                <XCircle size={16} />
-                Ngắt kết nối
-              </button>
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              {!isConnected ? (
+                <button
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                  className="flex items-center gap-2 bg-[var(--color-binance-yellow)] hover:bg-[var(--color-binance-yellow)]/90 text-black px-4 py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50"
+                >
+                  {isConnecting ? <Loader2 size={16} className="animate-spin" /> : <Smartphone size={16} />}
+                  {isConnecting ? "Đang kết nối..." : "Kết Nối USB Điện Thoại"}
+                </button>
+              ) : (
+                <button
+                  onClick={disconnect}
+                  className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 px-4 py-2.5 rounded-lg font-bold text-sm transition-colors"
+                >
+                  <XCircle size={16} />
+                  Ngắt kết nối
+                </button>
+              )}
+            </div>
+
+            {!isConnected && (
+              <label className="flex items-start gap-2 text-xs text-[var(--color-binance-gray)] cursor-pointer mt-1">
+                <input
+                  type="checkbox"
+                  checked={useSoftwareDecoder}
+                  onChange={(e) => setUseSoftwareDecoder(e.target.checked)}
+                  className="mt-0.5 rounded border-[var(--color-binance-border)] bg-[var(--color-binance-darker)] text-[var(--color-binance-yellow)] focus:ring-[var(--color-binance-yellow)]/50"
+                />
+                <span>
+                  <strong>Chế độ Sửa Lỗi Đen Màn Hình</strong> (Chỉ dùng khi máy báo lỗi EncodingError. Sẽ tốn CPU hơn do giải mã bằng phần mềm)
+                </span>
+              </label>
             )}
           </div>
         </div>
