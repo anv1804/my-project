@@ -8,8 +8,7 @@ import toast from "react-hot-toast";
 import { Adb, AdbDaemonTransport } from "@yume-chan/adb";
 import AdbWebCredentialStore from "@yume-chan/adb-credential-web";
 import { AdbDaemonWebUsbDeviceManager } from "@yume-chan/adb-daemon-webusb";
-import { ScrcpyOptions2_1 } from "@yume-chan/scrcpy";
-import { AdbScrcpyClient } from "@yume-chan/adb-scrcpy";
+import { AdbScrcpyClient, AdbScrcpyOptions2_1 } from "@yume-chan/adb-scrcpy";
 import { WebCodecsVideoDecoder, InsertableStreamVideoFrameRenderer, WebGLVideoFrameRenderer } from "@yume-chan/scrcpy-decoder-webcodecs";
 import { Consumable, WritableStream } from "@yume-chan/stream-extra";
 
@@ -85,7 +84,7 @@ export default function WebScrcpy() {
 
       // 4. Start Scrcpy
       toast.loading("Đang khởi động Scrcpy...", { id: "scrcpy" });
-      const options = new ScrcpyOptions2_1({
+      const options = new AdbScrcpyOptions2_1({
         maxSize: 1080,
         bitRate: 4000000,
         audio: false,
