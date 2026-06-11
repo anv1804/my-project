@@ -102,8 +102,8 @@ export default function WebScrcpy() {
       // 4. Start Scrcpy
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
       const options = new AdbScrcpyOptionsLatest({
-        maxSize: 720,
-        bitRate: 4000000,
+        maxSize: 480,
+        bitRate: 1500000,
         audio: false,
         control: true, // Cho phép điều khiển
       }, {
@@ -165,8 +165,7 @@ export default function WebScrcpy() {
       // 6. Handle Control Injection (Mouse/Touch/Scroll)
       // Dịch sự kiện chuột trên DOM renderer (canvas) sang tọa độ Scrcpy
       let isDragging = false;
-      let moveEventPending = false;
-      let lastMoveEvent = null;
+      let lastMoveTime = 0;
 
       // Xử lý Lăn Chuột / Vuốt Touchpad (CỰC KỲ QUAN TRỌNG ĐỂ HẾT LAG KHI CUỘN)
       domElement.addEventListener("wheel", (e) => {
@@ -224,19 +223,11 @@ export default function WebScrcpy() {
         e.preventDefault();
         if (!isDragging) return;
         
-        // Cực kỳ quan trọng: Chuột gaming/touchpad báo cáo tọa độ hàng trăm lần mỗi giây.
-        // Gửi toàn bộ qua WebUSB sẽ làm nghẽn cổ chai luồng truyền tải, gây ra hiện tượng khựng (stutter/lag).
-        // Giải pháp: Gom các sự kiện di chuyển và chỉ gửi 1 lần mỗi khung hình (60fps) thông qua requestAnimationFrame.
-        lastMoveEvent = e;
-        if (!moveEventPending) {
-          moveEventPending = true;
-          requestAnimationFrame(() => {
-            if (isDragging && lastMoveEvent) {
-              sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
-            }
-            moveEventPending = false;
-          });
-        }
+        const now = Date.now();
+        if (now - lastMoveTime < 16) return;
+        lastMoveTime = now;
+        
+        sendTouchEvent(e, 2 /* ACTION_MOVE */);
       });
 
       domElement.addEventListener("pointerup", (e) => {
@@ -245,12 +236,6 @@ export default function WebScrcpy() {
           domElement.releasePointerCapture(e.pointerId);
         }
         isDragging = false;
-        
-        // Đẩy nốt sự kiện di chuyển cuối cùng nếu đang bị giữ lại
-        if (moveEventPending && lastMoveEvent) {
-          sendTouchEvent(lastMoveEvent, 2 /* ACTION_MOVE */);
-          moveEventPending = false;
-        }
         
         sendTouchEvent(e, 1 /* ACTION_UP */);
       });
@@ -262,7 +247,6 @@ export default function WebScrcpy() {
         }
         if (isDragging) {
           isDragging = false;
-          moveEventPending = false; // Xóa hàng đợi
           sendTouchEvent(e, 1 /* ACTION_UP */);
         }
       });
