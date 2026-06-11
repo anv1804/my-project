@@ -95,8 +95,9 @@ export default function WebScrcpy() {
       // 4. Start Scrcpy
       toast.loading("Vui lòng BẬT MÀN HÌNH điện thoại và chọn BẮT ĐẦU (Start Now)...", { id: "scrcpy", duration: 30000 });
       const options = new AdbScrcpyOptionsLatest({
-        maxSize: 1080,
-        bitRate: 4000000,
+        maxSize: 720,
+        bitRate: 2000000,
+        maxFps: 60,
         audio: false,
         control: true, // Cho phép điều khiển
       }, {
