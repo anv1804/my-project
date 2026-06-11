@@ -10,7 +10,7 @@ import {
   Phone, RefreshCw, Search, Copy, Check, Timer,
   Globe, Wifi, AlertCircle, History, FileText,
   Volume2, VolumeX, Trash2, ChevronDown, ChevronUp,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, Calendar,
 } from "lucide-react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -817,7 +817,7 @@ export default function OtpRentBox() {
               return (
                 <div
                   key={rental.request_id}
-                  className={`relative rounded-xl border bg-[var(--color-binance-darker)]/40 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg shadow-black/20 overflow-hidden ${isExpired ? "opacity-60" : ""}`}
+                  className={`relative rounded-xl border bg-[var(--color-binance-darker)]/40 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg shadow-black/20 overflow-hidden ${isExpired ? "opacity-55" : ""}`}
                   style={{ borderColor }}
                 >
                   {/* Top glow strip */}
@@ -846,7 +846,7 @@ export default function OtpRentBox() {
 
                       {/* Status + Actions Row */}
                       <div className="shrink-0 flex items-center gap-2">
-                        {isWaiting && (
+                        {isWaiting && !isExpired && (
                           <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/25">
                             <RefreshCw size={9} className="animate-spin text-yellow-400" />
                             <span className="font-mono text-[10px] text-yellow-400 tabular-nums">{formattedTime}</span>
@@ -889,25 +889,22 @@ export default function OtpRentBox() {
                       </button>
                     </div>
 
-                    {/* OTP code highlight */}
-                    {isCompleted && rental.code && (
-                      <div className="mt-1 flex items-center justify-between gap-3 px-3.5 py-2 rounded-lg bg-green-500/10 border border-green-500/20 shadow-[0_0_12px_rgba(34,197,94,0.05)]">
-                        <div>
-                          <div className="text-[9px] text-green-400/70 uppercase tracking-widest font-bold mb-0.5">Mã OTP</div>
-                          <span className="font-mono font-black text-green-400 text-lg tracking-[0.2em]">{rental.code}</span>
-                        </div>
-                        <button
-                          onClick={() => copy(rental.code)}
-                          className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-colors cursor-pointer"
-                        >
-                          {isCodeCopied ? <><Check size={11} /> Copy xong</> : <><Copy size={11} /> Copy</>}
-                        </button>
-                      </div>
-                    )}
+                    {/* Ngày giờ thuê */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-binance-gray)]/60 px-1">
+                      <Calendar size={9} className="shrink-0" />
+                      <span>
+                        {rental.createdAt
+                          ? new Date(rental.createdAt).toLocaleString("vi-VN", {
+                              day: "2-digit", month: "2-digit", year: "numeric",
+                              hour: "2-digit", minute: "2-digit", second: "2-digit",
+                            })
+                          : "—"}
+                      </span>
+                    </div>
 
-                    {/* Progress bar */}
-                    {isWaiting && (
-                      <div className="mt-1 h-1 bg-[var(--color-binance-border)] rounded-full overflow-hidden">
+                    {/* Progress bar — chỉ khi đang chờ */}
+                    {isWaiting && !isExpired && (
+                      <div className="h-0.5 bg-[var(--color-binance-border)] rounded-full overflow-hidden -mt-1">
                         <div
                           className="h-full rounded-full transition-all duration-1000 ease-linear"
                           style={{ width: `${pct}%`, background: `linear-gradient(90deg, #f0b90b, #fbbf24)` }}
@@ -915,17 +912,52 @@ export default function OtpRentBox() {
                       </div>
                     )}
 
-                    {/* SMS content */}
-                    {rental.smsContent && (
-                      <div className="mt-1 px-3 py-2.5 bg-[var(--color-binance-darker)]/80 border border-[var(--color-binance-border)]/50 rounded-lg">
-                        <div className="text-[9px] text-[var(--color-binance-gray)] uppercase tracking-wider font-bold mb-1 opacity-70">Tin nhắn nhận được</div>
-                        {rental.isSound ? (
+                    {/* OTP block — luôn hiện, trống nếu chưa có mã */}
+                    <div className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border ${
+                      isCompleted && rental.code
+                        ? "bg-green-500/10 border-green-500/20 shadow-[0_0_12px_rgba(34,197,94,0.05)]"
+                        : "bg-[var(--color-binance-darker)]/60 border-[var(--color-binance-border)]/40"
+                    }`}>
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-[9px] uppercase tracking-widest font-bold mb-0.5 ${isCompleted && rental.code ? "text-green-400/70" : "text-[var(--color-binance-gray)]/50"}`}>
+                          Mã OTP
+                        </div>
+                        {isCompleted && rental.code ? (
+                          <span className="font-mono font-black text-green-400 text-lg tracking-[0.2em]">{rental.code}</span>
+                        ) : (
+                          <span className="font-mono text-sm text-[var(--color-binance-gray)]/30 italic">
+                            {isExpired ? "Không nhận được" : "Đang chờ..."}
+                          </span>
+                        )}
+                      </div>
+                      {isCompleted && rental.code && (
+                        <button
+                          onClick={() => copy(rental.code)}
+                          className="shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 transition-colors cursor-pointer"
+                        >
+                          {isCodeCopied ? <><Check size={11} /> Copy xong</> : <><Copy size={11} /> Copy</>}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* SMS block — luôn hiện, trống nếu chưa có tin */}
+                    <div className="px-3 py-2.5 bg-[var(--color-binance-darker)]/80 border border-[var(--color-binance-border)]/50 rounded-lg">
+                      <div className="text-[9px] text-[var(--color-binance-gray)] uppercase tracking-wider font-bold mb-1.5 opacity-70">
+                        Tin nhắn nhận được
+                      </div>
+                      {rental.smsContent ? (
+                        rental.isSound ? (
                           <audio src={rental.smsContent} controls className="w-full h-7" />
                         ) : (
                           <p className="font-mono text-xs text-white/95 whitespace-pre-wrap select-all leading-relaxed break-all">{rental.smsContent}</p>
-                        )}
-                      </div>
-                    )}
+                        )
+                      ) : (
+                        <p className="font-mono text-xs text-[var(--color-binance-gray)]/30 italic">
+                          {isExpired ? "Không có tin nhắn" : "Chưa nhận được..."}
+                        </p>
+                      )}
+                    </div>
+
                   </div>
                 </div>
               );
